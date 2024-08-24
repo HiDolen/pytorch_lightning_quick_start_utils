@@ -1,7 +1,5 @@
 from dataclasses import dataclass, field
 from typing import Union, Literal
-import math
-from typing import Literal
 from functools import partial
 
 @dataclass
