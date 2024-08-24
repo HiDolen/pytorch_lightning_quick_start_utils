@@ -1,8 +1,3 @@
----
-modified: 2024-08-24T17:33:02+08:00
-created: 2024-08-23T22:10:53+08:00
----
-
 # PyTorch Lightning Quick Start Utils
 
 本库为 PyTorch Lightning 的训练提前写好一些符合通常的（主要是我的）训练习惯的代码，以便快速开始训练。
