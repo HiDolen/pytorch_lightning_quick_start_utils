@@ -16,7 +16,13 @@ PyTorch Lightning 将训练代码的编写规范化，让代码复用更加便�
 
 ## 安装
 
-将本项目 clone 到本地，使用 `pip install -e .` 安装。
+直接通过仓库安装：
+
+```bash
+pip install git+https://github.com/HiDolen/pytorch_lightning_quick_start_utils
+```
+
+或是选择将本项目 clone 到本地，使用 `pip install -e .` 安装。
 
 ## 使用示例
 
