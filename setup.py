@@ -1,9 +1,9 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='pytorch_lightning_quick_start_utils',
-    packages=["pl_utils"],
-    version='0.1.0',
+    packages=find_packages(),
+    version='0.1.1',
     license='MIT',
     description='A utility library for PyTorch Lightning that provides pre-configured training setups to quickly start training.',
     author='HiDolen',
