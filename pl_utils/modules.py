@@ -54,10 +54,13 @@ class BaseModule(pl.LightningModule):
 
     def on_train_start(self) -> None:
         # 将 ipynb 文件保存到 log 目录
-        ip = get_ipython()
-        if '__vsc_ipynb_file__' in ip.user_ns:
-            this_file = ip.user_ns['__vsc_ipynb_file__']
-            shutil.copy(this_file, self.logger.log_dir)
+        try:
+            ip = get_ipython()
+            if '__vsc_ipynb_file__' in ip.user_ns:
+                this_file = ip.user_ns['__vsc_ipynb_file__']
+                shutil.copy(this_file, self.logger.log_dir)
+        except Exception as e:
+            print("Copy ipynb file failed. But it's ok.")
 
         # 实例化 LRScheduler
         max_steps = math.ceil(
