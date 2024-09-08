@@ -1,0 +1,7 @@
+torch --index-url https://download.pytorch.org/whl/cu124
+lightning
+numpy
+scikit-learn
+scipy
+tqdm
+git+https://github.com/HiDolen/pytorch_lightning_quick_start_utils
