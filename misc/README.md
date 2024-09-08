@@ -4,4 +4,4 @@
 
 包含：
 
-- `requirements.txt`，常用的 Python 库。可以使用 `pip install -r requirements.txt` 安装
+- `requirements.txt`，常用的 Python 库。可以使用 `pip install -r https://raw.githubusercontent.com/HiDolen/pytorch_lightning_quick_start_utils/main/misc/requirements.txt` 安装
