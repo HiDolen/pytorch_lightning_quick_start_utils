@@ -1,6 +1,12 @@
 name: Black Code Formatter
 
-on: [push, pull_request]
+on:
+    push:
+        branches:
+            - '*'
+        tags-ignore:
+            - '*'
+    pull_request:
 # on:
 #   push:
 #     branches:
