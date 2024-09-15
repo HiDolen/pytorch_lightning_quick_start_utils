@@ -1,3 +1,34 @@
 [tool.black]
 line-length = 100
 skip-string-normalization = true
+[tool.pdm]
+distribution = true
+
+[project]
+name = "pytorch_lightning_quick_start_utils"
+version = "0.1.1"
+description = "A utility library for PyTorch Lightning that provides pre-configured training setups to quickly start training."
+authors = [
+    {name = "HiDolen", email = "820859278@qq.com"},
+]
+dependencies = [
+    "numpy",
+    "pytorch_lightning>=2.0",
+    "torch>=2.4.1",
+]
+requires-python = ">=3.10"
+readme = "README.md"
+license = {text = "MIT"}
+keywords = ["artificial intelligence", "deep learning", "pytorch", "lightning"]
+
+[project.urls]
+Homepage = "https://github.com/hidolen/pytorch_lightning_quick_start_utils"
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]  # list of folders that contain the packages (["."] by default)
+include = ["*"]  # package names should match these glob patterns (["*"] by default)
+exclude = []  # exclude packages matching these glob patterns (empty by default)
+namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
