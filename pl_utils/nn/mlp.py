@@ -1,9 +1,9 @@
 import torch
-import torch.nn as nn
+from torch import nn
 
 class GeGLUMLP(nn.Module):
     """
-    GeGLU MLP，使用 GELU 激活函数的 GLU 完成的的 MLP。代码来自于 Google 的 Gemma 模型（https://developers.googleblog.com/en/gemma-explained-overview-gemma-model-family-architectures/）。
+    GeGLU MLP，使用 GELU 激活函数的 GLU 完成的 MLP。代码来自于 Google 的 Gemma 模型（https://developers.googleblog.com/en/gemma-explained-overview-gemma-model-family-architectures/）。
 
     根据论文 GLU Variants Improve Transformer 的实验，GeGLU 和 SwiGLU 能带来优于 ReLU、GLU、GELU 等的性能。
     """
