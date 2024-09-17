@@ -1,5 +1,6 @@
 torch --index-url https://download.pytorch.org/whl/cu124
 lightning
+tensorboard
 numpy
 scikit-learn
 scipy
@@ -7,5 +8,6 @@ tqdm
 pandas
 git+https://github.com/HiDolen/pytorch_lightning_quick_start_utils
 ipywidgets
-tensorboard
+plotly
+nbformat
 ema_pytorch
