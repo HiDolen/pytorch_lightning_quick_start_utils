@@ -6,5 +6,6 @@ scipy
 tqdm
 pandas
 git+https://github.com/HiDolen/pytorch_lightning_quick_start_utils
+ipywidgets
 tensorboard
 ema_pytorch
