@@ -18,7 +18,7 @@ def get_train_val_dataloader(
     Args:
         dataset: 指定 Dataset 对象
         batch_size: batch 大小
-        test_size: 验证集占比。为 0 时函数只返回 train_loader
+        test_size: 验证集占比。为 0 时函数返回的 val_loader 为 None
         num_workers: 指定 num_workers 参数
         pin_memory: 指定 pin_memory 参数
         drop_last: 指定 drop_last 参数
@@ -37,9 +37,12 @@ def get_train_val_dataloader(
             collate_fn=collate_fn,
         )
 
-    train_dataset, val_dataset = train_test_split(dataset, test_size=test_size, random_state=42)
-
-    train_loader = create_dataloader(train_dataset, shuffle=train_shuffle)
-    val_loader = create_dataloader(val_dataset, shuffle=False) if test_size != 0 else None
+    if test_size != 0:
+        train_dataset, val_dataset = train_test_split(dataset, test_size=test_size, random_state=42)
+        train_loader = create_dataloader(train_dataset, shuffle=train_shuffle)
+        val_loader = create_dataloader(val_dataset, shuffle=False)
+    else:
+        train_loader = create_dataloader(dataset, shuffle=train_shuffle)
+        val_loader = None
 
     return train_loader, val_loader
