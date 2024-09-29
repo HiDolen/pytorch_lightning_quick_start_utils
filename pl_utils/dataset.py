@@ -1,4 +1,4 @@
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, Subset
 from sklearn.model_selection import train_test_split
 
 
@@ -38,7 +38,10 @@ def get_train_val_dataloader(
         )
 
     if test_size != 0:
-        train_dataset, val_dataset = train_test_split(dataset, test_size=test_size, random_state=42)
+        indices = list(range(len(dataset)))
+        train_indices, val_indices = train_test_split(indices, test_size=test_size, random_state=42)
+        train_dataset = Subset(dataset, train_indices)
+        val_dataset = Subset(dataset, val_indices)
         train_loader = create_dataloader(train_dataset, shuffle=train_shuffle)
         val_loader = create_dataloader(val_dataset, shuffle=False)
     else:
