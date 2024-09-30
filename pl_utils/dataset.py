@@ -11,7 +11,7 @@ def get_train_val_dataloader(
     drop_last: bool = True,
     collate_fn=None,
     train_shuffle: bool = True,
-    persistent_workers: bool = True,
+    persistent_workers: bool = False,
 ):
     """
     从 dataset 中划分出训练集和验证集，返回 DataLoader。
