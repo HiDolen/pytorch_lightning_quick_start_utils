@@ -11,6 +11,7 @@ def get_train_val_dataloader(
     drop_last: bool = True,
     collate_fn=None,
     train_shuffle: bool = True,
+    persistent_workers: bool = True,
 ):
     """
     从 dataset 中划分出训练集和验证集，返回 DataLoader。
@@ -24,6 +25,7 @@ def get_train_val_dataloader(
         drop_last: 指定 drop_last 参数
         collate_fn: 指定 collate_fn 参数
         train_shuffle: 对于 train_loader 是否 shuffle 打乱顺序
+        persistent_workers: 指定 persistent_workers 参数
     """
 
     def create_dataloader(subset, shuffle):
@@ -35,6 +37,7 @@ def get_train_val_dataloader(
             drop_last=drop_last,
             shuffle=shuffle,
             collate_fn=collate_fn,
+            persistent_workers=persistent_workers,
         )
 
     if test_size != 0:
