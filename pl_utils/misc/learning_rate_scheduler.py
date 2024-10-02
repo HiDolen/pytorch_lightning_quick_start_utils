@@ -39,9 +39,12 @@ class LinearWarmupCosineAnnealingLR:
         self.lr_max = lr_config.lr_max
         self.lr_end = lr_config.lr_end
 
-        assert self._warmup(0) == self.lr_initial
-        assert math.isclose(self._warmup(self.lr_warmup_steps), self.lr_max, rel_tol=1e-9)
-        assert math.isclose(self._cosine(self.lr_warmup_steps), self.lr_max, rel_tol=1e-9)
+        if self.lr_warmup_steps == 0:
+            pass
+        else:
+            assert self._warmup(0) == self.lr_initial
+            assert math.isclose(self._warmup(self.lr_warmup_steps), self.lr_max, rel_tol=1e-9)
+            assert math.isclose(self._cosine(self.lr_warmup_steps), self.lr_max, rel_tol=1e-9)
 
     def _warmup(self, step):
         return self.lr_initial + (self.lr_max - self.lr_initial) * step / self.lr_warmup_steps
