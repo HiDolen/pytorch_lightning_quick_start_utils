@@ -1,6 +1,6 @@
 import torch
 import gc
-import pytorch_lightning as pl
+import lightning as L
 import torch.nn.functional as F
 from IPython import get_ipython
 import shutil
@@ -10,7 +10,7 @@ from pl_utils.configs import *
 from pl_utils.misc import LinearWarmupCosineAnnealingLR
 
 
-class BaseModule(pl.LightningModule):
+class BaseModule(L.LightningModule):
 
     def __init__(
         self,
@@ -70,12 +70,15 @@ class BaseModule(pl.LightningModule):
         self.lr_scheduler = LinearWarmupCosineAnnealingLR(self.lr_config, max_steps)
 
         # 记录 lr_schedule
-        lr_schedule = [self.lr_scheduler(e) for e in range(self.global_step, max_steps)]
-        for step, lr in enumerate(lr_schedule):
-            if self.lr_config.scheduler_type == "step":  # step 模式下只记录部分步长
-                if step % self.trainer.log_every_n_steps != 0:
-                    continue
-            self.logger.experiment.add_scalar('lr', lr, step)
+        try:
+            lr_schedule = [self.lr_scheduler(e) for e in range(self.global_step, max_steps)]
+            for step, lr in enumerate(lr_schedule):
+                if self.lr_config.scheduler_type == "step":  # step 模式下只记录部分步长
+                    if step % self.trainer.log_every_n_steps != 0:
+                        continue
+                self.logger.experiment.add_scalar('lr', lr, step)
+        except Exception as e:
+            print("Record lr_schedule failed. But it's ok.")
 
         # gc
         gc.collect()
