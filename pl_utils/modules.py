@@ -80,10 +80,6 @@ class BaseModule(L.LightningModule):
         except Exception as e:
             print("Record lr_schedule failed. But it's ok.")
 
-        # gc
-        gc.collect()
-        torch.cuda.empty_cache()
-
     def configure_optimizers(self):
         optimizer = self.training_config.optimizer(self.model.parameters())
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda e: self._lr_scheduler(e))
