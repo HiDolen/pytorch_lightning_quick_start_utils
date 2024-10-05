@@ -11,20 +11,23 @@ class GeGLUMLP(nn.Module):
         self,
         hidden_size,
         intermediate_dim,
+        output_dim=None,
     ):
         """
         
         Args:
             hidden_size: 输入到该层的维度
             intermediate_dim: 中间维度。习惯上设置为 hidden_size 的 4 倍
+            output_dim: 输出维度。为 None则输出维度等于 hidden_size
         """
         super().__init__()
         self.hidden_size = hidden_size
         self.intermediate_dim = intermediate_dim
+        self.output_dim = output_dim if output_dim is not None else hidden_size
 
         self.gate_proj = nn.Linear(self.hidden_size, self.intermediate_dim, bias=False)
         self.up_proj = nn.Linear(self.hidden_size, self.intermediate_dim, bias=False)
-        self.down_proj = nn.Linear(self.intermediate_dim, self.hidden_size, bias=False)
+        self.down_proj = nn.Linear(self.intermediate_dim, self.output_dim, bias=False)
 
         self.act = nn.GELU(approximate='tanh')
 
