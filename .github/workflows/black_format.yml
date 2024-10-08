@@ -38,7 +38,7 @@ jobs:
             echo "commit=true" >> $GITHUB_OUTPUT
           fi
       - name: Push changes
-        if: steps.commit.outputs.committed == 'true'
+        if: steps.commit.outputs.commit == 'true'
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
