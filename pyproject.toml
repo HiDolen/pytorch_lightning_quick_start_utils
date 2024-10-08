@@ -35,6 +35,7 @@ disable = [
     "C0115",  # missing class docstring
     "C0116",  # missing function docstring
     "C0301",  # line-too-long
+    "W0223",  # abstract-method
     "W0611",  # unused-import
     "W0613",  # unused-argument
     "W0622",  # redefined-builtin
