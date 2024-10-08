@@ -49,6 +49,7 @@ class RotaryPosEmbedding(nn.Module):
         """
         q 和 k 输入维度：[batch_size, num_heads, seq_len, dim]
         """
+
         def rotate_half(x):
             """Rotates half the hidden dims of the input."""
             x1 = x[..., : x.shape[-1] // 2]
