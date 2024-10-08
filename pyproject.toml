@@ -13,9 +13,10 @@ authors = [
 ]
 dependencies = [
     "numpy",
-    "pytorch_lightning>=2.0",
     "torch>=2.4",
     "scikit-learn>=1.5.2",
+    "lightning>=2.4.0",
+    "ipython>=8.28.0",
 ]
 requires-python = ">=3.10"
 readme = "README.md"
@@ -31,5 +32,5 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["."]  # list of folders that contain the packages (["."] by default)
 include = ["*"]  # package names should match these glob patterns (["*"] by default)
-exclude = []  # exclude packages matching these glob patterns (empty by default)
+exclude = ["tests"]  # exclude packages matching these glob patterns (empty by default)
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)

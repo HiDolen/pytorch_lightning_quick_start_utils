@@ -1,0 +1,22 @@
+name: Run Unit Tests
+
+on:
+    push:
+        tags-ignore:
+            - '*'
+    pull_request:
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+        - name: Setup PDM
+          uses: pdm-project/setup-pdm@v4
+          with:
+            cache: true
+        - name: Install dependencies
+          run: pdm install
+        - name: Run tests
+          run: pdm run python -m unittest discover -s tests
