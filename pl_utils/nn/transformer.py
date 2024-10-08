@@ -6,9 +6,10 @@ class LearnablePosEmbedding(nn.Module):
     """
     可学习位置编码。
     """
+
     def __init__(self, dim, max_seq_len):
         """
-        
+
         Args:
             dim: 位置编码的维度
             max_seq_len: 最大序列长度
@@ -21,10 +22,12 @@ class LearnablePosEmbedding(nn.Module):
         position_ids = self.position_ids[: x.size(-2)]
         return x + self.embeddings(position_ids)
 
+
 class RotaryPosEmbedding(nn.Module):
     """
     改编自 transformers 库中 gemma 模型的 modeling_gemma.py
     """
+
     def __init__(self, dim, max_position_embeddings=2048, base=10000):
         super().__init__()
 
@@ -67,7 +70,7 @@ class RotaryPosEmbedding(nn.Module):
             emb = torch.cat((freqs, freqs), dim=-1)
             cos = emb.cos()
             sin = emb.sin()
-            
+
         cos = cos.unsqueeze(1)
         sin = sin.unsqueeze(1)
         q_embed = (q * cos) + (rotate_half(q) * sin)
