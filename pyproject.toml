@@ -29,6 +29,16 @@ Homepage = "https://github.com/hidolen/pytorch_lightning_quick_start_utils"
 requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.pylint]
+disable = [
+    "C0114",  # missing module docstring
+    "C0115",  # missing class docstring
+    "C0116",  # missing function docstring
+    "W0611",  # unused-import
+    "W0613",  # unused-argument
+    "W0622",  # redefined-builtin
+]
+
 [tool.setuptools.packages.find]
 where = ["."]  # list of folders that contain the packages (["."] by default)
 include = ["*"]  # package names should match these glob patterns (["*"] by default)
