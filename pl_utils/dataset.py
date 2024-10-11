@@ -39,6 +39,8 @@ def get_train_val_dataloader(
             collate_fn=collate_fn,
             persistent_workers=persistent_workers,
         )
+    
+    persistent_workers = persistent_workers if num_workers > 0 else False
 
     if test_size != 0:
         indices = list(range(len(dataset)))
