@@ -3,7 +3,7 @@ from sklearn.model_selection import train_test_split
 
 
 def get_train_val_dataloader(
-    dataset: Dataset,
+    dataset,
     batch_size: int,
     test_size: float = 0.2,
     num_workers: int = 0,
@@ -17,7 +17,7 @@ def get_train_val_dataloader(
     从 dataset 中划分出训练集和验证集，返回 DataLoader。
 
     Args:
-        dataset: 指定 Dataset 对象
+        dataset: 指定 Dataset 对象。若传入不止一个 Dataset 对象，则会取前两个 分别作为 train 和 val
         batch_size: batch 大小
         test_size: 验证集占比。为 0 时函数返回的 val_loader 为 None
         num_workers: 指定 num_workers 参数
@@ -39,8 +39,14 @@ def get_train_val_dataloader(
             collate_fn=collate_fn,
             persistent_workers=persistent_workers,
         )
-
+    
     persistent_workers = persistent_workers if num_workers > 0 else False
+
+    if isinstance(dataset, (list, tuple)):
+        train_dataset, val_dataset = dataset[:2]
+        train_loader = create_dataloader(train_dataset, shuffle=train_shuffle)
+        val_loader = create_dataloader(val_dataset, shuffle=False)
+        return train_loader, val_loader
 
     if test_size != 0:
         indices = list(range(len(dataset)))
