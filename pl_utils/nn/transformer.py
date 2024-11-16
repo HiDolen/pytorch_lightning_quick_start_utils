@@ -28,11 +28,10 @@ class RotaryPosEmbedding(nn.Module):
     改编自 transformers 库中 gemma 模型的 modeling_gemma.py
     """
 
-    def __init__(self, dim, max_position_embeddings=2048, base=10000):
+    def __init__(self, dim, base=10000):
         super().__init__()
 
         self.dim = dim
-        self.max_position_embeddings = max_position_embeddings
         self.base = base
         inv_freq = 1.0 / (
             self.base ** (torch.arange(0, self.dim, 2, dtype=torch.int64).float() / self.dim)
