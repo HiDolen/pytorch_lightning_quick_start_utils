@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from torch import Tensor
 
 
 class LearnablePosEmbedding(nn.Module):
@@ -79,3 +80,36 @@ class RotaryPosEmbedding(nn.Module):
         q_embed = (q * cos) + (rotate_half(q) * sin)
         k_embed = (k * cos) + (rotate_half(k) * sin)
         return q_embed, k_embed
+
+
+class TimeStepSinusoidalEmbbedding(nn.Module):
+    """
+    将时间步转换为正余弦嵌入
+    """
+
+    def __init__(
+        self,
+        dim,
+        base=10000,
+    ):
+        super().__init__()
+        assert dim % 2 == 0, 'dim must be even'
+        self.dim = dim
+        self.register_buffer('base', torch.tensor(base))
+
+    def forward(self, timesteps: Tensor):
+        """
+
+        Args:
+            timesteps: Tensor: 整数张量，形状为 [seq_len]
+        """
+        half_dim = self.dim // 2
+        exponent = (
+            -torch.arange(half_dim, device=timesteps.device, dtype=timesteps.dtype)
+            / (half_dim - 1)
+            * torch.log(self.base)
+        )
+        frequencies = torch.exp(exponent)
+        angles = timesteps[:, None].float() * frequencies[None, :]
+        emb = torch.cat([angles.sin(), angles.cos()], dim=-1)
+        return emb

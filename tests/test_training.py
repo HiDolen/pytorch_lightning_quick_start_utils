@@ -3,8 +3,12 @@ import torch
 from torch.utils.data import DataLoader
 from torch import nn
 import lightning as L
+import logging
+
 from pl_utils import LearningRateConfig, TrainingConfig
 from pl_utils import BaseModule
+
+logging.getLogger("lightning").setLevel(logging.ERROR)
 
 
 class TestTraningProcess(unittest.TestCase):
