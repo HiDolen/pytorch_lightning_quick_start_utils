@@ -16,7 +16,7 @@ class GQASelfAttention(nn.Module):
         head_dim=8,
         num_heads=4,
         num_kv_heads=1,
-        attn_dropout=0.0,
+        attn_dropout=0.00,
         attn_bias=False,
         attn_implementation="scaled_dot_product_attention",
     ):
