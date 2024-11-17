@@ -38,7 +38,7 @@ class GQASelfAttention(nn.Module):
         self.head_dim = head_dim
         self.num_heads = num_heads
         self.num_kv_heads = num_kv_heads
-        self.num_key_value_groups = num_heads // num_kv_heads
+        self.num_kv_groups = num_heads // num_kv_heads
 
         self.attn_dropout = attn_dropout
         self.attn_dropout_origin = attn_dropout

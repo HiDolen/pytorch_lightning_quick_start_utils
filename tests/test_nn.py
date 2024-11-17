@@ -59,7 +59,7 @@ class TestTransformerAttention(unittest.TestCase):
             mlp_hidden_size_factor=2,
             head_dim=8,
             num_heads=2,
-            num_key_value_heads=1,
+            num_kv_heads=1,
             attn_dropout=0.1,
             attn_bias=False,
             attn_implementation="scaled_dot_product_attention",
