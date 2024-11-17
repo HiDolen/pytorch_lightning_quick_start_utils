@@ -16,13 +16,13 @@ class GQASelfAttention(nn.Module):
         head_dim=8,
         num_heads=4,
         num_key_value_heads=1,
-        attn_dropout=0.,
+        attn_dropout=0.0,
         attn_bias=False,
         attn_implementation="scaled_dot_product_attention",
     ):
         """
         一个进行自注意力的多头注意力实现。
-        
+
         Args:
             hidden_size: 隐藏层的维度
             mlp_hidden_size_factor: MLP 维度相对隐藏层维度的倍数
@@ -58,7 +58,7 @@ class GQASelfAttention(nn.Module):
 
     def forward(self, hidden_states, attn_mask=None):
         """
-        
+
         Args:
             hidden_states: [b_size, f_size, hidden_size]
             attn_mask: [b_size, f_size, f_size]
