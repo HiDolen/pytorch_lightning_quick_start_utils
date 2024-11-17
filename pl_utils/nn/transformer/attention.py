@@ -15,20 +15,20 @@ class GQASelfAttention(nn.Module):
         mlp_hidden_size_factor=4,
         head_dim=8,
         num_heads=4,
-        num_key_value_heads=1,
-        attn_dropout=0.,
+        num_kv_heads=1,
+        attn_dropout=0.0,
         attn_bias=False,
         attn_implementation="scaled_dot_product_attention",
     ):
         """
         一个进行自注意力的多头注意力实现。
-        
+
         Args:
             hidden_size: 隐藏层的维度
             mlp_hidden_size_factor: MLP 维度相对隐藏层维度的倍数
             head_dim: 头维度
             num_heads: 头数量
-            num_key_value_heads: kv 头数量
+            num_kv_heads: kv 头数量
             attn_dropout: dropout
             attn_bias: 线性层是否启用 bias
             attn_implementation: 注意力的实现
@@ -37,8 +37,8 @@ class GQASelfAttention(nn.Module):
         self.hidden_size = hidden_size
         self.head_dim = head_dim
         self.num_heads = num_heads
-        self.num_key_value_heads = num_key_value_heads
-        self.num_key_value_groups = num_heads // num_key_value_heads
+        self.num_kv_heads = num_kv_heads
+        self.num_key_value_groups = num_heads // num_kv_heads
 
         self.attn_dropout = attn_dropout
         self.attn_dropout_origin = attn_dropout
@@ -47,8 +47,8 @@ class GQASelfAttention(nn.Module):
         self.attention_implementation = attn_implementation
 
         self.q_proj = nn.Linear(hidden_size, num_heads * head_dim, bias=attn_bias)
-        self.k_proj = nn.Linear(hidden_size, num_key_value_heads * head_dim, bias=attn_bias)
-        self.v_proj = nn.Linear(hidden_size, num_key_value_heads * head_dim, bias=attn_bias)
+        self.k_proj = nn.Linear(hidden_size, num_kv_heads * head_dim, bias=attn_bias)
+        self.v_proj = nn.Linear(hidden_size, num_kv_heads * head_dim, bias=attn_bias)
         self.o_proj = nn.Linear(num_heads * head_dim, hidden_size, bias=attn_bias)
 
         self.mlp = GeGLUMLP(hidden_size, hidden_size * mlp_hidden_size_factor)
@@ -58,7 +58,7 @@ class GQASelfAttention(nn.Module):
 
     def forward(self, hidden_states, attn_mask=None):
         """
-        
+
         Args:
             hidden_states: [b_size, f_size, hidden_size]
             attn_mask: [b_size, f_size, f_size]
@@ -73,8 +73,8 @@ class GQASelfAttention(nn.Module):
         v_states = self.v_proj(hidden_states)
 
         q_states = q_states.view(b_size, f_size, self.num_heads, self.head_dim)
-        k_states = k_states.view(b_size, f_size, self.num_key_value_heads, self.head_dim)
-        v_states = v_states.view(b_size, f_size, self.num_key_value_heads, self.head_dim)
+        k_states = k_states.view(b_size, f_size, self.num_kv_heads, self.head_dim)
+        v_states = v_states.view(b_size, f_size, self.num_kv_heads, self.head_dim)
         q_states = q_states.transpose(1, 2)  # [b_size, num_heads, f_size, head_dim]
         k_states = k_states.transpose(1, 2)
         v_states = v_states.transpose(1, 2)
