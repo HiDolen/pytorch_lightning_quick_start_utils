@@ -11,6 +11,7 @@ PyTorch Lightning 将训练代码的编写规范化，让代码复用更加便�
 - **使用 VSCode 且用 ipynb 写训练代码**
 - 使用 PyTorch + PyTorch Lightning 训练模型
 - 使用 Tensorboard 记录 log
+  - log 被 Lightning 存入默认路径 `./lightning_logs`，各 log 命名格式为 `version_xx_xxxx`
 - 使用线性预热、余弦退火的策略进行学习率调度
 - 不把模型结构定义写在 `pytorch_lightning.LightningModule` 内
 
