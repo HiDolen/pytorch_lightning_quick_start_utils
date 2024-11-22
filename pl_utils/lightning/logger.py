@@ -20,8 +20,8 @@ def get_next_version() -> int:
 
     return max(existing_versions) + 1
 
+
 def format_next_version_name(suffix: str = "", version: int = None) -> str:
     next_version = get_next_version() if version is None else version
     next_version = str(next_version).zfill(3)
     return f"version_{next_version}_{suffix}" if suffix else f"version_{next_version}"
-

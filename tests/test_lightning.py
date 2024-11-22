@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 from pl_utils.lightning import format_next_version_name
 
+
 class TestLogger(unittest.TestCase):
 
     @patch("pl_utils.lightning.logger.os.listdir")
