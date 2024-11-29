@@ -6,7 +6,7 @@ distribution = true
 
 [project]
 name = "pytorch_lightning_quick_start_utils"
-version = "0.1.10"
+version = "0.2.0"
 description = "A utility library for PyTorch Lightning that provides pre-configured training setups to quickly start training."
 authors = [
     {name = "HiDolen", email = "hidolen@163.com"},
@@ -37,6 +37,7 @@ disable = [
     "C0116",  # missing function docstring
     "C0301",  # line-too-long
     "E1102",  # not-callable
+    "W0102",  # dangerous-default-value
     "W0223",  # abstract-method
     "W0611",  # unused-import
     "W0613",  # unused-argument
