@@ -11,5 +11,6 @@ class TestTransformerAttention(unittest.TestCase):
         k_or_v = torch.randn(2, 4, 8 * 8, 32 + 16)
         k_or_v = apply_rotary_emb(k_or_v, freqs_cis)
 
+
 if __name__ == '__main__':
     unittest.main()
