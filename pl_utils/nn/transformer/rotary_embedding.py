@@ -58,7 +58,7 @@ class RotaryEmbeddingMultiDimension(nn.Module):
 
     def forward(self, pos_ids: torch.Tensor) -> torch.Tensor:
         """
-        
+
         Args:
             pos_ids (`torch.Tensor`): [seq_len, dim_count]
         """
