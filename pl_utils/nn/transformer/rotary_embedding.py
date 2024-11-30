@@ -57,6 +57,11 @@ class RotaryEmbeddingMultiDimension(nn.Module):
         return freqs_cos, freqs_sin
 
     def forward(self, pos_ids: torch.Tensor) -> torch.Tensor:
+        """
+        
+        Args:
+            pos_ids (`torch.Tensor`): [seq_len, dim_count]
+        """
         dim_count = pos_ids.size(-1)
         cos_out, sin_out = [], []
         pos_ids = pos_ids.float()
