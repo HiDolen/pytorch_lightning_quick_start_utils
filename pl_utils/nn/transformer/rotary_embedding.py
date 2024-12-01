@@ -48,7 +48,7 @@ class RotaryEmbeddingMultiDimension(nn.Module):
 
     def get_1d_rotary_pos_embed(self, pos_ids, dim):
         """改编自 diffusers 库的 get_1d_rotary_pos_embed 函数。"""
-        freqs = torch.arange(0, dim, 2, dtype=torch.float64) / dim
+        freqs = torch.arange(0, dim, 2, dtype=torch.float64, device=pos_ids.device) / dim
         freqs = 1.0 / (self.theta**freqs)  # [D/2]
         freqs = torch.outer(pos_ids, freqs)  # type: ignore   # [S, D/2]
 
