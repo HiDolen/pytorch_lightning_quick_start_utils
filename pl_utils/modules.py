@@ -6,7 +6,7 @@ from IPython import get_ipython
 import shutil
 import math
 
-from pl_utils.configs import *
+from pl_utils.configs import LearningRateConfig, TrainingConfig
 from pl_utils.misc import LinearWarmupCosineAnnealingLR
 
 
@@ -19,6 +19,8 @@ class BaseModule(L.LightningModule):
         training_config: TrainingConfig,
     ) -> None:
         super().__init__()
+        self.save_hyperparameters(ignore=["model"])
+
         self.model = model
         self.lr_config = lr_config
         self.lr_scheduler = None  # 延迟初始化。在 on_train_start() 中初始化
@@ -52,6 +54,9 @@ class BaseModule(L.LightningModule):
         raise NotImplementedError
 
     def on_train_start(self) -> None:
+        if self.global_step != 0:
+            return
+
         # 将 ipynb 文件保存到 log 目录
         try:
             ip = get_ipython()
