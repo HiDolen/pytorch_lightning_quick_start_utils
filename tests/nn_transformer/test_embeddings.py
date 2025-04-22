@@ -24,7 +24,7 @@ class TestTransformerEmbeddings(unittest.TestCase):
 
     def test_time_step_sinusoidal_embedding_forward(self):
         time_emb = TimeStepSinusoidalEmbbedding(6, base=100)
-        times = torch.arange(4)
+        times = torch.arange(4).unsqueeze(0)
         embeddings = time_emb(times)
         embedding_target = torch.tensor(
             [

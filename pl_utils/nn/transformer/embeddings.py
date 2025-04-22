@@ -101,7 +101,7 @@ class TimeStepSinusoidalEmbbedding(nn.Module):
         """
 
         Args:
-            timesteps: Tensor: 整数张量，形状为 [seq_len]
+            timesteps: Tensor: 整数张量，形状为 [batch, seq_len]
         """
         half_dim = self.dim // 2
         exponent = (
@@ -110,6 +110,6 @@ class TimeStepSinusoidalEmbbedding(nn.Module):
             * torch.log(self.base)
         )
         frequencies = torch.exp(exponent)
-        angles = timesteps[:, None].float() * frequencies[None, :]
-        emb = torch.cat([angles.sin(), angles.cos()], dim=-1)
+        angles = timesteps.unsqueeze(-1).float() * frequencies
+        emb = torch.cat([angles.sin(), angles.cos()], dim=-1)  # 最终形状为 [batch, seq_len, dim]
         return emb
