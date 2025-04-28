@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from IPython import get_ipython
 import shutil
 import math
+import __main__
 
 from pl_utils.configs import LearningRateConfig, TrainingConfig
 from pl_utils.misc import LinearWarmupCosineAnnealingLR
@@ -65,6 +66,12 @@ class BaseModule(L.LightningModule):
                 shutil.copy(this_file, self.logger.log_dir)
         except Exception as e:
             print("Copy ipynb file failed. But it's ok.")
+        # 将 py 文件保存到 log 目录
+        try:
+            this_file = getattr(__main__, '__file__', None)
+            shutil.copy(this_file, self.logger.log_dir)
+        except Exception as e:
+            print("Copy py file failed. But it's ok.")
 
         # 实例化 LRScheduler
         max_steps = math.ceil(
