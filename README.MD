@@ -79,7 +79,7 @@ pl_model = ResNetForMNIST(model, learning_rate_config, training_config)
 
 ## 这个库帮忙提前写好了什么？
 
-将 `pytorch_lightning.LightningModule` 再次封装为 `BaseModule`，实现了以下几个接口和功能：
+将 `lightning.LightningModule` 再次封装为 `BaseModule`，实现了以下几个接口和功能：
 
 - `on_train_start()`
   - 使用 `__vsc_ipynb_file__` 获取 ipynb 文件路径，并保存一份文件到 log 路径
@@ -87,6 +87,7 @@ pl_model = ResNetForMNIST(model, learning_rate_config, training_config)
   - 将本次训练全程的学习率变化写入到 log
 - `configure_optimizers()`
   - 注册优化器、学习率调度器
+  - 默认取消 bias、norm 和 embed 权重的 weight decay
 
 为了配置方便，有这些 config 类：
 
