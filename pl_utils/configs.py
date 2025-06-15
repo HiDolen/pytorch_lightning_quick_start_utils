@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Union, Literal, TypedDict
 from functools import partial
 
+
 @dataclass
 class LearningRateConfig:
     """
@@ -33,6 +34,7 @@ class LearningRateConfig:
     max_steps: int = 0  # 若为 0，会自动替换为整体训练的步数
     scheduler_type: Literal["epoch", "step"] = "step"
 
+
 @dataclass
 class TrainingConfig:
     """
@@ -50,7 +52,9 @@ class TrainingConfig:
 
     optimizer: Union[Literal["adamw", "apex_adamw", "bnb_adamw"], object] = "adamw"
     optimizer_args: dict = field(default_factory=dict)
-    no_weight_decay_module_names: list[str] = field(default_factory=lambda: ["bias", "norm", "embed"])
+    no_weight_decay_module_names: list[str] = field(
+        default_factory=lambda: ["bias", "norm", "embed"]
+    )
 
     def __post_init__(self):
         default_args = {
