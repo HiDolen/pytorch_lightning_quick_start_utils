@@ -9,6 +9,7 @@ import __main__
 
 from pl_utils.configs import LearningRateConfig, TrainingConfig
 from pl_utils.misc import LinearWarmupCosineAnnealingLR
+from pl_utils.optmizers import get_optimizer_partial
 
 
 class BaseModule(L.LightningModule):
@@ -109,7 +110,8 @@ class BaseModule(L.LightningModule):
             {"params": params_with_wd},
             {"params": params_without_wd, "weight_decay": 0.0},
         ]
-        optimizer = self.training_config.optimizer(optimizer_grouped_parameters)
+        optimizer_partial = get_optimizer_partial(self.training_config.optimizer)
+        optimizer = optimizer_partial(optimizer_grouped_parameters)
         # 实例化学习率调度器
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda e: self._lr_scheduler(e))
         scheduler = {
