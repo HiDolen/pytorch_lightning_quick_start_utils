@@ -9,6 +9,7 @@ import __main__
 
 from pl_utils.configs import LearningRateConfig, TrainingConfig
 from pl_utils.misc import LinearWarmupCosineAnnealingLR
+from pl_utils.optmizers import get_optimizer_partial
 
 
 class BaseModule(L.LightningModule):
@@ -93,7 +94,25 @@ class BaseModule(L.LightningModule):
             print("Record lr_schedule failed. But it's ok.")
 
     def configure_optimizers(self):
-        optimizer = self.training_config.optimizer(self.model.parameters())
+        # 一般像是 bias、norm、embed 不需要 weight_decay
+        excluded_from_weight_decay = self.training_config.excluded_from_weight_decay
+        params_with_wd = []
+        params_without_wd = []
+        for name, param in self.model.named_parameters():
+            if not param.requires_grad:
+                continue
+            if any(module_name in name for module_name in excluded_from_weight_decay):
+                params_without_wd.append(param)
+            else:
+                params_with_wd.append(param)
+        # 实例化优化器
+        optimizer_grouped_parameters = [
+            {"params": params_with_wd},
+            {"params": params_without_wd, "weight_decay": 0.0},
+        ]
+        optimizer_partial = get_optimizer_partial(self.training_config)
+        optimizer = optimizer_partial(optimizer_grouped_parameters)
+        # 实例化学习率调度器
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda e: self._lr_scheduler(e))
         scheduler = {
             "scheduler": scheduler,
