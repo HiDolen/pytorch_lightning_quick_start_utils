@@ -48,7 +48,9 @@ class TrainingConfig:
 
     optimizer: Union[Literal["adamw", "apex_adamw", "bnb_adamw"], object] = "adamw"
     optimizer_args: dict = field(default_factory=dict)
-    no_weight_decay_module_names: list[str] = field(default_factory=lambda: ["bias", "norm", "embed"])
+    no_weight_decay_module_names: list[str] = field(
+        default_factory=lambda: ["bias", "norm", "embed"]
+    )
 
     def __post_init__(self):
         default_args = {
