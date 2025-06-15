@@ -2,8 +2,8 @@ from dataclasses import dataclass, field
 from typing import Union, Literal, TypedDict
 from functools import partial
 
-
-class LearningRateConfig(TypedDict, total=False):
+@dataclass
+class LearningRateConfig:
     """
     学习率调度器配置。覆盖训练过程的预热和退火。
 
@@ -33,8 +33,8 @@ class LearningRateConfig(TypedDict, total=False):
     max_steps: int = 0  # 若为 0，会自动替换为整体训练的步数
     scheduler_type: Literal["epoch", "step"] = "step"
 
-
-class TrainingConfig(TypedDict, total=False):
+@dataclass
+class TrainingConfig:
     """
     配置训练相关内容。
 
@@ -49,9 +49,13 @@ class TrainingConfig(TypedDict, total=False):
     """
 
     optimizer: Union[Literal["adamw", "apex_adamw", "bnb_adamw"], object] = "adamw"
-    optimizer_args: dict = {
-        "lr": 1,
-        "betas": [0.9, 0.95],
-        "weight_decay": 1e-2,
-    }
-    no_weight_decay_module_names: list[str] = ["bias", "norm", "embed"]
+    optimizer_args: dict = field(default_factory=dict)
+    no_weight_decay_module_names: list[str] = field(default_factory=lambda: ["bias", "norm", "embed"])
+
+    def __post_init__(self):
+        default_args = {
+            "lr": 1,  # 该参数应当固定为 1。真正 lr 由学习率调度器控制
+            'betas': [0.9, 0.95],
+            'weight_decay': 1e-2,
+        }
+        self.optimizer_args = {**default_args, **self.optimizer_args}

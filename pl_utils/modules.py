@@ -110,7 +110,7 @@ class BaseModule(L.LightningModule):
             {"params": params_with_wd},
             {"params": params_without_wd, "weight_decay": 0.0},
         ]
-        optimizer_partial = get_optimizer_partial(self.training_config.optimizer)
+        optimizer_partial = get_optimizer_partial(self.training_config)
         optimizer = optimizer_partial(optimizer_grouped_parameters)
         # 实例化学习率调度器
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda e: self._lr_scheduler(e))

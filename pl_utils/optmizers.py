@@ -36,12 +36,6 @@ def get_optimizer_partial(config: TrainingConfig):
     Args:
         config (TrainingConfig): 包含优化器配置的 TrainingConfig 对象。
     """
-    default_args = {
-        "lr": 1,  # 该参数应当固定为 1。真正 lr 由学习率调度器控制
-        'betas': (0.9, 0.95),
-        'weight_decay': 1e-2,
-    }
-    kwargs = {**default_args, **config.optimizer_args}
     opt = config.optimizer
     optimizer_class = _get_optimizer_class(opt) if isinstance(opt, str) else opt
-    return partial(optimizer_class, **kwargs)
+    return partial(optimizer_class, **config.optimizer_args)
