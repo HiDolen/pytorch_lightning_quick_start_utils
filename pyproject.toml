@@ -18,8 +18,9 @@ dependencies = [
     "lightning>=2.4.0",
     "ipython>=8.28.0",
     "pdm>=2.20.1",
+    "tensorboard>=2.19.0",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 readme = "README.md"
 license = {text = "MIT"}
 keywords = ["artificial intelligence", "deep learning", "pytorch", "lightning"]
