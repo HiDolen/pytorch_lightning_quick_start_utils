@@ -95,13 +95,13 @@ class BaseModule(L.LightningModule):
 
     def configure_optimizers(self):
         # 一般像是 bias、norm、embed 不需要 weight_decay
-        no_weight_decay_module_names = self.training_config.no_weight_decay_module_names
+        excluded_from_weight_decay = self.training_config.no_weight_decay_module_names
         params_with_wd = []
         params_without_wd = []
         for name, param in self.model.named_parameters():
             if not param.requires_grad:
                 continue
-            if any(module_name in name for module_name in no_weight_decay_module_names):
+            if any(module_name in name for module_name in excluded_from_weight_decay):
                 params_without_wd.append(param)
             else:
                 params_with_wd.append(param)
