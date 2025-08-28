@@ -75,11 +75,11 @@ class BaseModule(L.LightningModule):
             print("Copy py file failed. But it's ok.")
 
         # 实例化 LRScheduler
-        max_steps = math.ceil(
-            self.trainer.num_training_batches
-            * self.trainer.max_epochs
-            / self.trainer.accumulate_grad_batches
-        )
+        if self.trainer.max_epochs == -1:
+            step_num = self.trainer.max_steps
+        else:
+            step_num = self.trainer.num_training_batches * self.trainer.max_epochs
+        max_steps = math.ceil(step_num / self.trainer.accumulate_grad_batches)
         self.lr_scheduler = LinearWarmupCosineAnnealingLR(self.lr_config, max_steps)
 
         # 记录 lr_schedule
