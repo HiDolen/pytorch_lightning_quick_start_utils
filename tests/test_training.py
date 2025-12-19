@@ -9,8 +9,8 @@ import lightning as L
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
 
-from pl_utils import LearningRateConfig, TrainingConfig
-from pl_utils import BaseModule
+from pl_utils import TrainingConfig, BaseModule, OneOptimizerConfig
+from pl_utils.misc import LinearWarmupCosineAnnealingLR
 
 logging.getLogger("lightning").setLevel(logging.ERROR)
 
@@ -20,21 +20,46 @@ class DummyModule(BaseModule):
         return self.model(x)
 
     def training_step(self, batch, batch_idx):
-        y = self(batch)
-        loss = y.mean()
-        return loss
+        optimizers = self.optimizers()
+        optimizers = [optimizers] if not isinstance(optimizers, list) else optimizers
+
+        need_step = (batch_idx + 1) % self.training_config.accumulate_grad_batches == 0
+        need_step = need_step or self.trainer.is_last_batch
+
+        for optimizer in optimizers:
+            with optimizer.toggle_model(sync_grad=need_step):
+                y = self(batch)
+                loss = y.mean()
+                self.manual_backward(loss)
+                if need_step:
+                    self.log('train/loss', loss.item(), sync_dist=True)
+
+        if need_step:
+            for optimizer in optimizers:
+                optimizer.step()
+                optimizer.zero_grad()
+            schedulers = self.lr_schedulers()
+            schedulers = [schedulers] if not isinstance(schedulers, list) else schedulers
+            for scheduler in schedulers:
+                scheduler.step()
 
 
 class TestTraningProcess(unittest.TestCase):
     def test_training_process(self):
         # 配置
-        lr_config = LearningRateConfig()
-        training_config = TrainingConfig(optimizer="adamw")
+        training_config = TrainingConfig(
+            optimizers=[
+                OneOptimizerConfig(
+                    optimizer=torch.optim.AdamW,
+                    scheduler=LinearWarmupCosineAnnealingLR(max_steps=10, lr_max=1e-4),
+                )
+            ]
+        )
         # 模型与数据
         dummy_dataset = torch.randn(32, 10)
         dummy_loader = DataLoader(dummy_dataset, batch_size=16)
         dummy_model = nn.LazyLinear(1)
-        pl_model = DummyModule(dummy_model, lr_config, training_config)
+        pl_model = DummyModule(dummy_model, training_config)
         # 训练
         trainer = L.Trainer(
             max_epochs=3,
@@ -48,13 +73,19 @@ class TestTraningProcess(unittest.TestCase):
 
     def test_training_checkpoint(self):
         # 配置
-        lr_config = LearningRateConfig(max_steps=100)
-        training_config = TrainingConfig(optimizer="adamw")
+        training_config = TrainingConfig(
+            optimizers=[
+                OneOptimizerConfig(
+                    optimizer=torch.optim.AdamW,
+                    scheduler=LinearWarmupCosineAnnealingLR(max_steps=10, lr_max=1e-4),
+                )
+            ]
+        )
         # 模型与数据
         dummy_dataset = torch.randn(32, 10)
         dummy_loader = DataLoader(dummy_dataset, batch_size=16)
         dummy_model = nn.LazyLinear(1)
-        pl_model = DummyModule(dummy_model, lr_config, training_config)
+        pl_model = DummyModule(dummy_model, training_config)
         # 检查点回调
         checkpoint_callback = ModelCheckpoint(
             every_n_epochs=1,

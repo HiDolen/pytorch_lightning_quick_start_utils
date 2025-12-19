@@ -8,7 +8,7 @@ import torch
 def init_before_training(
     seed: int = 42,
     matmul_precision: Literal["highest", "high", "medium"] = "high",
-    empty_cache: bool = True,
+    empty_cache: bool = False,
     tokenizers_parallelism: bool = False,
 ):
     """

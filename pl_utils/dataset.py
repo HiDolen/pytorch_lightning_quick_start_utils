@@ -5,7 +5,6 @@ from sklearn.model_selection import train_test_split
 def get_train_val_dataloader(
     dataset,
     batch_size: int,
-    test_size: float = 0.2,
     num_workers: int = 0,
     pin_memory: bool = True,
     drop_last: bool = True,
@@ -20,7 +19,6 @@ def get_train_val_dataloader(
     Args:
         dataset: 指定 Dataset 对象。若传入不止一个 Dataset 对象，则会取前两个 分别作为 train 和 val
         batch_size: batch 大小
-        test_size: 验证集占比。为 0 时函数返回的 val_loader 为 None
         num_workers: 指定 num_workers 参数
         pin_memory: 指定 pin_memory 参数
         drop_last: 指定 drop_last 参数
@@ -49,15 +47,7 @@ def get_train_val_dataloader(
         val_loader = create_dataloader(val_dataset, shuffle=False)
         return train_loader, val_loader
 
-    if test_size != 0:
-        indices = list(range(len(dataset)))
-        train_indices, val_indices = train_test_split(indices, test_size=test_size, random_state=42)
-        train_dataset = Subset(dataset, train_indices)
-        val_dataset = Subset(dataset, val_indices)
-        train_loader = create_dataloader(train_dataset, shuffle=train_shuffle)
-        val_loader = create_dataloader(val_dataset, shuffle=False)
-    else:
-        train_loader = create_dataloader(dataset, shuffle=train_shuffle)
-        val_loader = None
+    train_loader = create_dataloader(dataset, shuffle=train_shuffle)
+    val_loader = None
 
     return train_loader, val_loader

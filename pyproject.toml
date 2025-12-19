@@ -6,21 +6,21 @@ distribution = true
 
 [project]
 name = "pytorch_lightning_quick_start_utils"
-version = "0.2.3"
+version = "0.3.0"
 description = "A utility library for PyTorch Lightning that provides pre-configured training setups to quickly start training."
 authors = [
     {name = "HiDolen", email = "hidolen@163.com"},
 ]
 dependencies = [
-    "numpy",
-    "torch>=2.5",
+    "numpy>=2.2.6",
+    "torch>=2.9",
     "scikit-learn>=1.5.2",
     "lightning>=2.4.0",
     "ipython>=8.28.0",
     "pdm>=2.20.1",
     "tensorboard>=2.19.0",
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.12, <3.15"
 readme = "README.md"
 license = {text = "MIT"}
 keywords = ["artificial intelligence", "deep learning", "pytorch", "lightning"]
