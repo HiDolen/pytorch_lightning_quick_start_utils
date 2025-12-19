@@ -119,7 +119,9 @@ class BaseModule(L.LightningModule):
                 # 记录到 TensorBoard
                 for step in sorted(steps_to_log):
                     if 0 <= step < len(lr_schedule):
-                        self.logger.experiment.add_scalar(f'lr/optimizer_{i}', lr_schedule[step], step)
+                        self.logger.experiment.add_scalar(
+                            f'lr/optimizer_{i}', lr_schedule[step], step
+                        )
         except Exception as e:
             print("Record lr_schedule failed. But it's ok.")
 
