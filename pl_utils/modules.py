@@ -119,9 +119,7 @@ class BaseModule(L.LightningModule):
                 # 记录到 TensorBoard
                 for step in sorted(steps_to_log):
                     if 0 <= step < len(lr_schedule):
-                        self.logger.experiment.add_scalar(
-                            f'lr/optimizer_{i}', lr_schedule[step], step
-                        )
+                        self.logger.experiment.add_scalar(f'lr/optimizer_{i}', lr_schedule[step], step)
         except Exception as e:
             print("Record lr_schedule failed. But it's ok.")
 
@@ -166,9 +164,7 @@ class BaseModule(L.LightningModule):
                 {"params": params_with_wd},
                 {"params": params_without_wd, "weight_decay": 0.0},
             ]
-            optimizer = opt_config.optimizer(
-                optimizer_grouped_parameters, **opt_config.optimizer_args
-            )
+            optimizer = opt_config.optimizer(optimizer_grouped_parameters, **opt_config.optimizer_args)
             optimizers.append(optimizer)
 
             # 实例化学习率调度器
@@ -183,8 +179,14 @@ class BaseModule(L.LightningModule):
 
         # 警告：存在未被任何优化器使用的参数
         if remaining_params:
-            print(
-                f"Warning: {len(remaining_params)} parameters not optimized: {list(remaining_params.keys())}"
-            )
+            print(f"Warning: {len(remaining_params)} parameters not optimized: {list(remaining_params.keys())}")
 
         return optimizers, schedulers
+
+    def on_save_checkpoint(self, checkpoint: dict) -> None:
+        checkpoint_keys = list(checkpoint.keys())
+        for key in checkpoint_keys:
+            if key != 'state_dict':
+                del checkpoint[key]
+
+        raise NotImplementedError
