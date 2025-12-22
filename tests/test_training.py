@@ -19,6 +19,9 @@ class DummyModule(BaseModule):
     def forward(self, x):
         return self.model(x)
 
+    def on_save_checkpoint(self, checkpoint: dict) -> None:
+        pass
+
     def training_step(self, batch, batch_idx):
         optimizers = self.optimizers()
         optimizers = [optimizers] if not isinstance(optimizers, list) else optimizers

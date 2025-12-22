@@ -19,24 +19,24 @@ class TestGetHumanReadableCount(unittest.TestCase):
 
     def test_thousands(self):
         """测试千位数"""
-        self.assertEqual(get_human_readable_count(1000), "1.0 K")
-        self.assertEqual(get_human_readable_count(1234), "1.2 K")
-        self.assertEqual(get_human_readable_count(99999), "100.0 K")
+        self.assertEqual(get_human_readable_count(1000), "1.0K")
+        self.assertEqual(get_human_readable_count(1234), "1.2K")
+        self.assertEqual(get_human_readable_count(99999), "100.0K")
 
     def test_millions(self):
         """测试百万位数"""
-        self.assertEqual(get_human_readable_count(1000000), "1.0 M")
-        self.assertEqual(get_human_readable_count(2500000), "2.5 M")
-        self.assertEqual(get_human_readable_count(100000000), "100 M")
+        self.assertEqual(get_human_readable_count(1000000), "1.0M")
+        self.assertEqual(get_human_readable_count(2500000), "2.5M")
+        self.assertEqual(get_human_readable_count(100000000), "100M")
 
     def test_billions(self):
         """测试十亿位数"""
-        self.assertEqual(get_human_readable_count(1000000000), "1.0 B")
-        self.assertEqual(get_human_readable_count(5500000000), "5.5 B")
+        self.assertEqual(get_human_readable_count(1000000000), "1.0B")
+        self.assertEqual(get_human_readable_count(5500000000), "5.5B")
 
     def test_trillions(self):
         """测试万亿位数"""
-        self.assertEqual(get_human_readable_count(1000000000000), "1.0 T")
+        self.assertEqual(get_human_readable_count(1000000000000), "1.0T")
 
 
 class TestGetModelParametersCount(unittest.TestCase):
@@ -87,7 +87,7 @@ class TestGetModelParametersCount(unittest.TestCase):
         # 参数量: 1000*1000 + 1000 = 1,001,000
         result = get_model_parameters_count(model)
         self.assertEqual(result["total"], 1001000)
-        self.assertEqual(result["total_readable"], "1.0 M")
+        self.assertEqual(result["total_readable"], "1.0M")
 
 
 if __name__ == '__main__':
