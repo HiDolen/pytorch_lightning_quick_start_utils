@@ -20,7 +20,10 @@ class BaseModule(L.LightningModule):
         training_config: TrainingConfig,
     ) -> None:
         super().__init__()
-        self.save_hyperparameters(ignore=["model"])
+
+        # 保存 training_config 会导致 torch 加载 checkpoint 时出现安全警告
+        # 仔细一想也没有必要额外保存一份 hyperparameters，所以代码就注释掉了
+        # self.save_hyperparameters(ignore=["model"])
 
         self.model = model
         self.training_config = training_config
