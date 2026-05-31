@@ -27,6 +27,10 @@ keywords = ["artificial intelligence", "deep learning", "pytorch", "lightning"]
 
 [project.urls]
 Homepage = "https://github.com/hidolen/pytorch_lightning_quick_start_utils"
+
+[project.scripts]
+pl = "pl_utils.cli:main"
+
 [build-system]
 requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
