@@ -44,7 +44,7 @@ class DummyModule(BaseModule):
                 scheduler.step()
 
 
-class TestTraningProcess(unittest.TestCase):
+class TestTrainingProcess(unittest.TestCase):
     def test_training_process(self):
         # 配置
         training_config = TrainingConfig(
@@ -114,7 +114,8 @@ class TestTraningProcess(unittest.TestCase):
         self.assertIn('lr_schedulers', checkpoint)
         self.assertTrue(all(state['state'] == {} for state in checkpoint['optimizer_states']))
         # 开始恢复训练
-        pl_model = DummyModule(dummy_model, training_config)
+        restored_model = nn.Linear(10, 1)
+        pl_model = DummyModule(restored_model, training_config)
         trainer = L.Trainer(
             max_epochs=4,
             logger=logger,

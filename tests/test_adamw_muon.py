@@ -113,8 +113,6 @@ class TestAdamWMuon(unittest.TestCase):
         self.assertEqual(schedulers[0]['interval'], 'step')
         self.assertEqual(schedulers[1]['interval'], 'step')
 
-        print("✓ AdamW + Muon 双优化器配置测试通过")
-
     def test_learning_rate_schedules(self):
         """测试两个优化器的学习率调度"""
         # Muon: 余弦退火
@@ -148,32 +146,31 @@ class TestAdamWMuon(unittest.TestCase):
         self.assertAlmostEqual(muon_scheduler(1000), 1e-6, places=7)
         self.assertLess(adamw_scheduler(1000), 1e-3)
 
-        print("✓ 学习率调度测试通过")
-
     def test_weight_decay_exclusion(self):
         """测试 weight decay 排除机制"""
         model = TestModel()
 
-        muon_config = OneOptimizerConfig(
-            optimizer=torch.optim.Muon,
-            optimizer_args={'lr': 1, 'momentum': 0.95, 'weight_decay': 0.01},
+        adamw_config = OneOptimizerConfig(
+            optimizer=torch.optim.AdamW,
+            optimizer_args={'lr': 1, 'weight_decay': 0.01},
             keywords=['middle_layer'],
             excluded_from_weight_decay=['bias'],
         )
 
-        training_config = TrainingConfig(optimizers=[muon_config, OneOptimizerConfig()])
+        training_config = TrainingConfig(optimizers=[adamw_config, OneOptimizerConfig()])
         pl_module = TestModule(model, training_config)
         optimizers, _ = pl_module.configure_optimizers()
 
-        # Muon 优化器应该有两个参数组
-        muon_optimizer = optimizers[0]
-        self.assertEqual(len(muon_optimizer.param_groups), 2)
+        # AdamW 优化器应该有两个参数组
+        adamw_optimizer = optimizers[0]
+        self.assertEqual(len(adamw_optimizer.param_groups), 2)
 
         # 验证 bias 参数在无 weight decay 组中
-        no_wd_group = muon_optimizer.param_groups[1]
-        self.assertEqual(no_wd_group['weight_decay'], 0.0)
-
-        print("✓ Weight decay 排除测试通过")
+        no_wd_group = adamw_optimizer.param_groups[1]
+        self.assertEqual(
+            {id(p) for p in no_wd_group['params']},
+            {id(model.middle_layer1.bias), id(model.middle_layer2.bias)},
+        )
 
     def test_all_parameters_covered(self):
         """测试所有可学习参数都被优化器覆盖"""
@@ -218,8 +215,6 @@ class TestAdamWMuon(unittest.TestCase):
 
         # 验证参数总数
         self.assertEqual(len(all_model_params), 8, "模型应有 8 个参数（4 个权重 + 4 个偏置）")
-
-        print("✓ 参数覆盖完整性测试通过")
 
 
 if __name__ == '__main__':

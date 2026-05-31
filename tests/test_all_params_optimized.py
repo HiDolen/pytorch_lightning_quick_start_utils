@@ -1,4 +1,6 @@
+import io
 import unittest
+from contextlib import redirect_stdout
 import torch
 from torch import nn
 from pl_utils.configs import TrainingConfig, OneOptimizerConfig
@@ -140,7 +142,14 @@ class TestAllParamsOptimized(unittest.TestCase):
         pl_module = DummyModule(model, training_config)
 
         # 应该能正常运行，但会有警告（1D 参数未被优化）
-        optimizers, _ = pl_module.configure_optimizers()
+        stdout = io.StringIO()
+        with redirect_stdout(stdout):  # 捕获标准输出
+            optimizers, _ = pl_module.configure_optimizers()
+        # 检查是否有警告输出
+        warning_text = stdout.getvalue()
+        self.assertIn("parameters not optimized", warning_text)
+        self.assertIn("linear.bias", warning_text)
+        self.assertIn("norm.weight", warning_text)
 
         optimized = self._get_all_optimized_params(optimizers)
         # Muon 只优化 2D 参数
