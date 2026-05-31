@@ -193,9 +193,15 @@ class BaseModule(L.LightningModule):
         return optimizers, schedulers
 
     def on_save_checkpoint(self, checkpoint: dict) -> None:
-        checkpoint_keys = list(checkpoint.keys())
-        for key in checkpoint_keys:
-            if key != 'state_dict':
-                del checkpoint[key]
-
-        raise NotImplementedError
+        # `save_weights_only=True` 时，Lightning 不会保存 optimizer/scheduler 状态。
+        # 为保证能用 Lightning 恢复训练，需要补充键值
+        if 'optimizer_states' not in checkpoint:
+            checkpoint['optimizer_states'] = [
+                optimizer.state_dict() for optimizer in self.trainer.optimizers
+            ]
+            for optimizer_state in checkpoint['optimizer_states']:
+                optimizer_state['state'] = {}
+        if 'lr_schedulers' not in checkpoint:
+            checkpoint['lr_schedulers'] = [
+                config.scheduler.state_dict() for config in self.trainer.lr_scheduler_configs
+            ]

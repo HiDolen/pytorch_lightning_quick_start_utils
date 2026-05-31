@@ -19,9 +19,6 @@ class DummyModule(BaseModule):
     def forward(self, x):
         return self.model(x)
 
-    def on_save_checkpoint(self, checkpoint: dict) -> None:
-        pass
-
     def training_step(self, batch, batch_idx):
         optimizers = self.optimizers()
         optimizers = [optimizers] if not isinstance(optimizers, list) else optimizers
@@ -92,7 +89,7 @@ class TestTraningProcess(unittest.TestCase):
         # 检查点回调
         checkpoint_callback = ModelCheckpoint(
             every_n_epochs=1,
-            save_weights_only=False,
+            save_weights_only=True,
             save_last=True,
         )
         # logger
@@ -111,8 +108,13 @@ class TestTraningProcess(unittest.TestCase):
         last_checkpoint = checkpoint_callback.last_model_path
         if not last_checkpoint:
             self.fail("No checkpoint was created.")
-        # 继续训练
-        pl_model = DummyModule.load_from_checkpoint(last_checkpoint, model=dummy_model)
+        # 须包含 optimizer_states 和 lr_schedulers 才能用 lightning 恢复训练
+        checkpoint = torch.load(last_checkpoint)
+        self.assertIn('optimizer_states', checkpoint)
+        self.assertIn('lr_schedulers', checkpoint)
+        self.assertTrue(all(state['state'] == {} for state in checkpoint['optimizer_states']))
+        # 开始恢复训练
+        pl_model = DummyModule(dummy_model, training_config)
         trainer = L.Trainer(
             max_epochs=4,
             logger=logger,
@@ -120,7 +122,7 @@ class TestTraningProcess(unittest.TestCase):
             enable_progress_bar=False,
             num_sanity_val_steps=0,
         )
-        trainer.fit(pl_model, dummy_loader)
+        trainer.fit(pl_model, dummy_loader, ckpt_path=last_checkpoint)
 
     def tearDown(self):
         log_dir = "./lightning_logs"
