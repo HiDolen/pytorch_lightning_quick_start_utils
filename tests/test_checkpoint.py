@@ -99,7 +99,9 @@ class TestCheckpointResume(unittest.TestCase):
             if not last_checkpoint:
                 self.fail("No checkpoint was created.")
             # 获得 train/loss 的 step 数
-            loss_step_before_resume = self._get_tensorboard_scalar_step(logger.log_dir, 'train/loss')
+            loss_step_before_resume = self._get_tensorboard_scalar_step(
+                logger.log_dir, 'train/loss'
+            )
 
             # 从检查点恢复训练
             pl_model = DummyModule(nn.Linear(10, 1), training_config)
