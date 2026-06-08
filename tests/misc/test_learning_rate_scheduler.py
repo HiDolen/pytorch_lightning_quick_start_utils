@@ -8,7 +8,9 @@ class TestLinearWarmupCosineAnnealingLR(unittest.TestCase):
 
     def test_warmup_phase(self):
         """测试预热阶段学习率线性增长"""
-        scheduler = LinearWarmupCosineAnnealingLR(max_steps=100, lr_initial=0.0, lr_max=1.0, lr_warmup_steps=10)
+        scheduler = LinearWarmupCosineAnnealingLR(
+            max_steps=100, lr_initial=0.0, lr_max=1.0, lr_warmup_steps=10
+        )
         # 预热阶段应线性增长
         self.assertAlmostEqual(scheduler(0), 0.0)
         self.assertAlmostEqual(scheduler(5), 0.5)
@@ -47,7 +49,9 @@ class TestLinearWarmupStepDecayLR(unittest.TestCase):
 
     def test_warmup_phase(self):
         """测试预热阶段"""
-        scheduler = LinearWarmupStepDecayLR(max_steps=100, lr_initial=0.0, lr_max=1.0, lr_warmup_steps=10)
+        scheduler = LinearWarmupStepDecayLR(
+            max_steps=100, lr_initial=0.0, lr_max=1.0, lr_warmup_steps=10
+        )
         self.assertAlmostEqual(scheduler(0), 0.0)
         self.assertAlmostEqual(scheduler(10), 1.0)
 
@@ -70,7 +74,9 @@ class TestLinearWarmupStepDecayLR(unittest.TestCase):
 
     def test_warmup_steps_as_float(self):
         """测试预热步数为浮点数（比例）"""
-        scheduler = LinearWarmupStepDecayLR(max_steps=100, lr_initial=0.0, lr_max=1.0, lr_warmup_steps=0.1)  # 10%
+        scheduler = LinearWarmupStepDecayLR(
+            max_steps=100, lr_initial=0.0, lr_max=1.0, lr_warmup_steps=0.1
+        )  # 10%
         self.assertEqual(scheduler.lr_warmup_steps, 10)
 
 

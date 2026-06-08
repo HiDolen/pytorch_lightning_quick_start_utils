@@ -6,9 +6,9 @@ import math
 class LinearWarmupCosineAnnealingLR:
     """
     线性预热、余弦退火 的学习率调度器。
-    
+
     学习率变化示意图（lr_cycle_steps=0）:
-    
+
         lr_max  ┤     ╭───╮
                 │    ╱     ╲
                 │   ╱       ╲
@@ -17,9 +17,9 @@ class LinearWarmupCosineAnnealingLR:
         lr_end  ┤╱                 ────────
                 └─────┬──────┬─────────────> step
                    warmup  max_steps
-    
+
     学习率变化示意图（lr_cycle_steps>0）:
-    
+
         lr_max  ┤     ╭───╮         ╭───╮
                 │    ╱     ╲       ╱     ╲
                 │   ╱       ╲     ╱       ╲
