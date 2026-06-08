@@ -6,6 +6,27 @@ import math
 class LinearWarmupCosineAnnealingLR:
     """
     线性预热、余弦退火 的学习率调度器。
+    
+    学习率变化示意图（lr_cycle_steps=0）:
+    
+        lr_max  ┤     ╭───╮
+                │    ╱     ╲
+                │   ╱       ╲
+                │  ╱         ╲
+                │ ╱           ╲___
+        lr_end  ┤╱                 ────────
+                └─────┬──────┬─────────────> step
+                   warmup  max_steps
+    
+    学习率变化示意图（lr_cycle_steps>0）:
+    
+        lr_max  ┤     ╭───╮         ╭───╮
+                │    ╱     ╲       ╱     ╲
+                │   ╱       ╲     ╱       ╲
+                │  ╱         ╲   ╱         ╲
+        lr_end  ┤╱            ╲_╱           ╲_╱
+                └─────┬──────┬────────────────> step
+                   warmup  max_steps
     """
 
     def __init__(
@@ -76,6 +97,21 @@ class LinearWarmupStepDecayLR:
     线性预热、固定比例退火 的学习率调度器。
 
     每隔固定步数将学习率乘以衰减因子。
+
+    学习率变化示意图:
+
+        lr_max  ┤     ┌───────┐
+                │    ╱        └─────┐
+                │   ╱               └─────┐
+                │  ╱                      └───────────
+                │ ╱
+        lr_min  ┤╱
+                └──────┬──────┬─────┬─────┬─────────> step
+                    warmup    │     │  max_steps
+                           decay  decay
+                           step1  step2
+
+    注: 超过 max_steps 后学习率保持不变
     """
 
     def __init__(
@@ -112,6 +148,7 @@ class LinearWarmupStepDecayLR:
         return self.lr_max * (self.decay_factor**num_decays)
 
     def __call__(self, step):
+        step = min(step, self.max_steps)
         if step < self.lr_warmup_steps:
             return self._warmup(step)
         else:
