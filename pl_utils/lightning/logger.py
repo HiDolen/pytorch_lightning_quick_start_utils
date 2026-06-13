@@ -26,7 +26,9 @@ def _get_current_version(log_dir: str = "lightning_logs") -> int:
     return max(existing_versions)
 
 
-def get_specified_version_name(version: Optional[int] = None, log_dir: str = "lightning_logs") -> str:
+def get_specified_version_name(
+    version: Optional[int] = None, log_dir: str = "lightning_logs"
+) -> str:
     """
     根据版本号获取版本名称。用于恢复训练。支持 version_001 这种形式
 
@@ -47,7 +49,9 @@ def get_specified_version_name(version: Optional[int] = None, log_dir: str = "li
     raise ValueError(f"version {version} not found")
 
 
-def format_next_version_name(suffix: str = "", version: int = None, log_dir: str = "lightning_logs") -> str:
+def format_next_version_name(
+    suffix: str = "", version: int = None, log_dir: str = "lightning_logs"
+) -> str:
     """
     格式化下一个版本的名称。格式为 version_{version}_{suffix}
     """
