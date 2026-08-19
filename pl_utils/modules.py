@@ -155,17 +155,23 @@ class BaseModule(L.LightningModule):
                 {"params": params_with_wd},
                 {"params": params_without_wd, "weight_decay": 0.0},
             ]
-            optimizer = opt_config.optimizer(optimizer_grouped_parameters, **opt_config.optimizer_args)
+            optimizer = opt_config.optimizer(
+                optimizer_grouped_parameters, **opt_config.optimizer_args
+            )
             optimizers.append(optimizer)
 
         # 警告：存在未被任何优化器使用的参数
         if remaining_params:
-            print(f"Warning: {len(remaining_params)} parameters not optimized: {list(remaining_params.keys())}")
+            print(
+                f"Warning: {len(remaining_params)} parameters not optimized: {list(remaining_params.keys())}"
+            )
 
         # 用 JointOptimizer 打包，供 Lightning 当作一个优化器调用
         joint_optimizer = JointOptimizer(optimizers)
         # 实例化学习率调度器
-        scheduler = torch.optim.lr_scheduler.LambdaLR(joint_optimizer, lr_lambda=self.training_config.scheduler)
+        scheduler = torch.optim.lr_scheduler.LambdaLR(
+            joint_optimizer, lr_lambda=self.training_config.scheduler
+        )
         scheduler = {
             "scheduler": scheduler,
             "interval": "step",
@@ -181,7 +187,9 @@ class BaseModule(L.LightningModule):
         # `save_weights_only=True` 时，Lightning 不会保存 optimizer/scheduler 状态。
         # 为保证能用 Lightning 恢复训练，需要补充键值
         if 'optimizer_states' not in checkpoint:
-            checkpoint['optimizer_states'] = [optimizer.state_dict() for optimizer in self.trainer.optimizers]
+            checkpoint['optimizer_states'] = [
+                optimizer.state_dict() for optimizer in self.trainer.optimizers
+            ]
             for optimizer_state in checkpoint['optimizer_states']:
                 for inner_state in optimizer_state:
                     inner_state['state'] = {}

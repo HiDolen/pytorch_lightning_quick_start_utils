@@ -87,7 +87,9 @@ class TestAdamWMuon(unittest.TestCase):
 
         # 验证 AdamW 优化器类型和参数
         self.assertIsInstance(optimizer.optimizers[1], torch.optim.AdamW)
-        adamw_params = [p for group in optimizer.optimizers[1].param_groups for p in group['params']]
+        adamw_params = [
+            p for group in optimizer.optimizers[1].param_groups for p in group['params']
+        ]
         other_params = list(model.input_layer.parameters()) + list(model.output_layer.parameters())
         self.assertEqual(len(adamw_params), 6)  # 输入输出 Linear 和中间态的 bias
 
@@ -97,7 +99,9 @@ class TestAdamWMuon(unittest.TestCase):
         self.assertEqual(all_model_params, all_optimizer_params, "所有可学习参数必须被优化器覆盖")
 
         # 验证没有参数被重复分配
-        self.assertEqual(len(muon_params) + len(adamw_params), len(all_optimizer_params), "参数不应被重复分配")
+        self.assertEqual(
+            len(muon_params) + len(adamw_params), len(all_optimizer_params), "参数不应被重复分配"
+        )
 
         # 验证学习率调度器
         self.assertEqual(scheduler['interval'], 'step')
@@ -196,9 +200,13 @@ class TestAdamWMuon(unittest.TestCase):
 
         # 验证无重复分配
         total_params_count = sum(
-            len(group['params']) for inner_opt in optimizer.optimizers for group in inner_opt.param_groups
+            len(group['params'])
+            for inner_opt in optimizer.optimizers
+            for group in inner_opt.param_groups
         )
-        self.assertEqual(total_params_count, len(all_optimizer_params), "参数不应被重复分配到多个优化器")
+        self.assertEqual(
+            total_params_count, len(all_optimizer_params), "参数不应被重复分配到多个优化器"
+        )
 
         # 验证参数总数
         self.assertEqual(len(all_model_params), 8, "模型应有 8 个参数（4 个权重 + 4 个偏置）")
