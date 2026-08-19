@@ -21,28 +21,9 @@ class DummyModule(BaseModule):
         return self.model(x)
 
     def training_step(self, batch, batch_idx):
-        optimizers = self.optimizers()
-        optimizers = [optimizers] if not isinstance(optimizers, list) else optimizers
-
-        need_step = (batch_idx + 1) % self.training_config.accumulate_grad_batches == 0
-        need_step = need_step or self.trainer.is_last_batch
-
-        for optimizer in optimizers:
-            with optimizer.toggle_model(sync_grad=need_step):
-                y = self(batch)
-                loss = y.mean()
-                self.manual_backward(loss)
-                if need_step:
-                    self.log('train/loss', loss.item(), sync_dist=True)
-
-        if need_step:
-            for optimizer in optimizers:
-                optimizer.step()
-                optimizer.zero_grad()
-            schedulers = self.lr_schedulers()
-            schedulers = [schedulers] if not isinstance(schedulers, list) else schedulers
-            for scheduler in schedulers:
-                scheduler.step()
+        loss = self(batch).mean()
+        self.log('train/loss', loss, sync_dist=True)
+        return loss
 
 
 class TestCheckpointResume(unittest.TestCase):
@@ -58,9 +39,9 @@ class TestCheckpointResume(unittest.TestCase):
             optimizers=[
                 OneOptimizerConfig(
                     optimizer=torch.optim.AdamW,
-                    scheduler=LinearWarmupCosineAnnealingLR(max_steps=10, lr_max=1e-4),
                 )
-            ]
+            ],
+            scheduler=LinearWarmupCosineAnnealingLR(max_steps=10, lr_max=1e-4),
         )
         # 模型与数据
         dummy_dataset = torch.randn(32, 10)
@@ -99,9 +80,7 @@ class TestCheckpointResume(unittest.TestCase):
             if not last_checkpoint:
                 self.fail("No checkpoint was created.")
             # 获得 train/loss 的 step 数
-            loss_step_before_resume = self._get_tensorboard_scalar_step(
-                logger.log_dir, 'train/loss'
-            )
+            loss_step_before_resume = self._get_tensorboard_scalar_step(logger.log_dir, 'train/loss')
 
             # 从检查点恢复训练
             pl_model = DummyModule(nn.Linear(10, 1), training_config)

@@ -20,28 +20,9 @@ class DummyModule(BaseModule):
         return self.model(x)
 
     def training_step(self, batch, batch_idx):
-        optimizers = self.optimizers()
-        optimizers = [optimizers] if not isinstance(optimizers, list) else optimizers
-
-        need_step = (batch_idx + 1) % self.training_config.accumulate_grad_batches == 0
-        need_step = need_step or self.trainer.is_last_batch
-
-        for optimizer in optimizers:
-            with optimizer.toggle_model(sync_grad=need_step):
-                y = self(batch)
-                loss = y.mean()
-                self.manual_backward(loss)
-                if need_step:
-                    self.log('train/loss', loss.item(), sync_dist=True)
-
-        if need_step:
-            for optimizer in optimizers:
-                optimizer.step()
-                optimizer.zero_grad()
-            schedulers = self.lr_schedulers()
-            schedulers = [schedulers] if not isinstance(schedulers, list) else schedulers
-            for scheduler in schedulers:
-                scheduler.step()
+        loss = self(batch).mean()
+        self.log('train/loss', loss, sync_dist=True)
+        return loss
 
 
 class TestTrainingProcess(unittest.TestCase):
@@ -51,9 +32,9 @@ class TestTrainingProcess(unittest.TestCase):
             optimizers=[
                 OneOptimizerConfig(
                     optimizer=torch.optim.AdamW,
-                    scheduler=LinearWarmupCosineAnnealingLR(max_steps=10, lr_max=1e-4),
                 )
-            ]
+            ],
+            scheduler=LinearWarmupCosineAnnealingLR(max_steps=10, lr_max=1e-4),
         )
         # 模型与数据
         dummy_dataset = torch.randn(32, 10)
@@ -77,9 +58,9 @@ class TestTrainingProcess(unittest.TestCase):
             optimizers=[
                 OneOptimizerConfig(
                     optimizer=torch.optim.AdamW,
-                    scheduler=LinearWarmupCosineAnnealingLR(max_steps=10, lr_max=1e-4),
                 )
-            ]
+            ],
+            scheduler=LinearWarmupCosineAnnealingLR(max_steps=10, lr_max=1e-4),
         )
         # 模型与数据
         dummy_dataset = torch.randn(32, 10)
@@ -112,7 +93,10 @@ class TestTrainingProcess(unittest.TestCase):
         checkpoint = torch.load(last_checkpoint)
         self.assertIn('optimizer_states', checkpoint)
         self.assertIn('lr_schedulers', checkpoint)
-        self.assertTrue(all(state['state'] == {} for state in checkpoint['optimizer_states']))
+        for opt_state in checkpoint['optimizer_states']:
+            # JointOptimizer.state_dict() 里面还有一层优化器状态的列表
+            for inner_state in opt_state:
+                self.assertEqual(inner_state['state'], {})
         # 开始恢复训练
         restored_model = nn.Linear(10, 1)
         pl_model = DummyModule(restored_model, training_config)

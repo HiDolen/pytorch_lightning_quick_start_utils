@@ -32,11 +32,11 @@ class DummyModule(BaseModule):
 class TestAllParamsOptimized(unittest.TestCase):
     """测试所有可学习参数都被优化器覆盖"""
 
-    def _get_all_optimized_params(self, optimizers):
-        """获取所有优化器中的参数"""
+    def _get_all_optimized_params(self, optimizer):
+        """获取联合优化器中所有子优化器的参数"""
         all_params = []
-        for opt in optimizers:
-            for group in opt.param_groups:
+        for inner_opt in optimizer.optimizers:
+            for group in inner_opt.param_groups:
                 all_params.extend(group['params'])
         return all_params
 
@@ -49,9 +49,9 @@ class TestAllParamsOptimized(unittest.TestCase):
         model = TestModel()
         training_config = TrainingConfig(optimizers=[OneOptimizerConfig()])
         pl_module = DummyModule(model, training_config)
-        optimizers, _ = pl_module.configure_optimizers()
+        optimizer = pl_module.configure_optimizers()["optimizer"]
 
-        optimized = self._get_all_optimized_params(optimizers)
+        optimized = self._get_all_optimized_params(optimizer)
         trainable = self._get_all_trainable_params(model)
 
         self.assertEqual(len(optimized), len(trainable))
@@ -66,9 +66,9 @@ class TestAllParamsOptimized(unittest.TestCase):
         opt3 = OneOptimizerConfig()  # 剩余参数
         training_config = TrainingConfig(optimizers=[opt1, opt2, opt3])
         pl_module = DummyModule(model, training_config)
-        optimizers, _ = pl_module.configure_optimizers()
+        optimizer = pl_module.configure_optimizers()["optimizer"]
 
-        optimized = self._get_all_optimized_params(optimizers)
+        optimized = self._get_all_optimized_params(optimizer)
         trainable = self._get_all_trainable_params(model)
 
         self.assertEqual(len(optimized), len(trainable))
@@ -82,9 +82,9 @@ class TestAllParamsOptimized(unittest.TestCase):
         opt2 = OneOptimizerConfig()
         training_config = TrainingConfig(optimizers=[opt1, opt2])
         pl_module = DummyModule(model, training_config)
-        optimizers, _ = pl_module.configure_optimizers()
+        optimizer = pl_module.configure_optimizers()["optimizer"]
 
-        optimized = self._get_all_optimized_params(optimizers)
+        optimized = self._get_all_optimized_params(optimizer)
         # 检查无重复（通过 id 比较）
         param_ids = [id(p) for p in optimized]
         self.assertEqual(len(param_ids), len(set(param_ids)), "存在重复参数")
@@ -98,9 +98,9 @@ class TestAllParamsOptimized(unittest.TestCase):
 
         training_config = TrainingConfig(optimizers=[OneOptimizerConfig()])
         pl_module = DummyModule(model, training_config)
-        optimizers, _ = pl_module.configure_optimizers()
+        optimizer = pl_module.configure_optimizers()["optimizer"]
 
-        optimized = self._get_all_optimized_params(optimizers)
+        optimized = self._get_all_optimized_params(optimizer)
         trainable = self._get_all_trainable_params(model)
 
         self.assertEqual(len(optimized), len(trainable))
@@ -120,9 +120,9 @@ class TestAllParamsOptimized(unittest.TestCase):
         opt2 = OneOptimizerConfig()  # AdamW 兜底
         training_config = TrainingConfig(optimizers=[opt1, opt2])
         pl_module = DummyModule(model, training_config)
-        optimizers, _ = pl_module.configure_optimizers()
+        optimizer = pl_module.configure_optimizers()["optimizer"]
 
-        optimized = self._get_all_optimized_params(optimizers)
+        optimized = self._get_all_optimized_params(optimizer)
         trainable = self._get_all_trainable_params(model)
 
         self.assertEqual(
@@ -144,14 +144,14 @@ class TestAllParamsOptimized(unittest.TestCase):
         # 应该能正常运行，但会有警告（1D 参数未被优化）
         stdout = io.StringIO()
         with redirect_stdout(stdout):  # 捕获标准输出
-            optimizers, _ = pl_module.configure_optimizers()
+            optimizer = pl_module.configure_optimizers()["optimizer"]
         # 检查是否有警告输出
         warning_text = stdout.getvalue()
         self.assertIn("parameters not optimized", warning_text)
         self.assertIn("linear.bias", warning_text)
         self.assertIn("norm.weight", warning_text)
 
-        optimized = self._get_all_optimized_params(optimizers)
+        optimized = self._get_all_optimized_params(optimizer)
         # Muon 只优化 2D 参数
         params_2d = [p for p in model.parameters() if p.requires_grad and p.dim() >= 2]
         self.assertEqual(len(optimized), len(params_2d))
