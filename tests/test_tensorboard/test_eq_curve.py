@@ -8,7 +8,8 @@ import unittest
 from tensorboard.backend.event_processing import event_file_loader
 from torch.utils.tensorboard import SummaryWriter
 
-from pl_utils.tensorboard.eq_curve import EQ_CURVE_PLUGIN_NAME, EqCurvePlugin
+import pl_utils  # noqa: F401
+from cli.tensorboard_plugins.eq_curve import EQ_CURVE_PLUGIN_NAME, EqCurvePlugin
 
 
 class _FakeContext:

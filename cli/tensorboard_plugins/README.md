@@ -18,7 +18,7 @@ pl log
 
 ### XY Curves
 
-`add_xy_curve()`。
+`add_curve()`。
 
 ```python
 from pl_utils import BaseModule
@@ -26,7 +26,7 @@ from pl_utils import BaseModule
 class MyModule(BaseModule):
     def on_validation_epoch_end(self, batch, batch_idx):
         ...
-        self.logger.experiment.add_xy_curve(
+        self.logger.experiment.add_curve(
             "xy/test", self.xy_points, self.global_step
         )
 ```
@@ -46,6 +46,6 @@ class MyModule(BaseModule):
         )
 ```
 
-## 关于 `shared/histogram` 目录
+## 关于 `cli/tensorboard_plugins/shared/histogram` 目录
 
 `shared/histogram` 目录下是从 TensorBoard 移植来的共用 UI 库，一般来说不应被改动。

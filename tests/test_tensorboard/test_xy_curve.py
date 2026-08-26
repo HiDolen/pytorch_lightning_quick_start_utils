@@ -7,7 +7,8 @@ import unittest
 
 from torch.utils.tensorboard import SummaryWriter
 
-from pl_utils.tensorboard.xy_curve import XyCurvePlugin
+import pl_utils  # noqa: F401
+from cli.tensorboard_plugins.xy_curve import XyCurvePlugin
 
 
 class _FakeContext:
