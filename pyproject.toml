@@ -31,6 +31,10 @@ Homepage = "https://github.com/hidolen/pytorch_lightning_quick_start_utils"
 [project.scripts]
 pl = "cli:main"
 
+[project.entry-points.tensorboard_plugins]
+xy_curves = "pl_utils.tensorboard.xy_curve:XyCurveLoader"
+eq_curves = "pl_utils.tensorboard.eq_curve:EqCurveLoader"
+
 [build-system]
 requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
@@ -54,3 +58,5 @@ where = ["."]  # list of folders that contain the packages (["."] by default)
 include = ["*"]  # package names should match these glob patterns (["*"] by default)
 exclude = ["tests"]  # exclude packages matching these glob patterns (empty by default)
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
+[tool.setuptools.package-data]
+"pl_utils.tensorboard" = ["**/*.js"]

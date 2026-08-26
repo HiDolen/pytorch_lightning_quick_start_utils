@@ -1,0 +1,46 @@
+"""XY Curves 插件：写入侧 summary 构造 + 后端 /tags /data /ui/* 路由。"""
+
+import json
+
+from tensorboard.compat.proto import summary_pb2
+from tensorboard.compat.proto import tensor_pb2
+from tensorboard.compat.proto import types_pb2
+from tensorboard.plugins import base_plugin
+
+from ..plugin_base import JsonTensorPluginBase
+
+XY_CURVE_PLUGIN_NAME = "xy_curves"
+
+
+def add_curve(writer, tag, points, step):
+    """向 SummaryWriter 写入一条 XY 曲线（``[[x, y], ...]``）。"""
+    tensor = tensor_pb2.TensorProto(dtype=types_pb2.DT_STRING)
+    tensor.string_val.append(
+        json.dumps(points, separators=(",", ":")).encode("utf-8")
+    )
+    metadata = summary_pb2.SummaryMetadata(
+        plugin_data=summary_pb2.SummaryMetadata.PluginData(
+            plugin_name=XY_CURVE_PLUGIN_NAME
+        )
+    )
+    summary_proto = summary_pb2.Summary(
+        value=[
+            summary_pb2.Summary.Value(
+                tag=tag, tensor=tensor, metadata=metadata
+            )
+        ]
+    )
+    writer._get_file_writer().add_summary(summary_proto, step)
+
+
+class XyCurvePlugin(JsonTensorPluginBase):
+    """在 TensorBoard 中渲染每步 XY 曲线的插件。"""
+
+    plugin_name = XY_CURVE_PLUGIN_NAME
+    tab_name = "XY Curves"
+    es_module_path = "/ui/xy_curve/entry.js"
+
+
+class XyCurveLoader(base_plugin.TBLoader):
+    def load(self, context):
+        return XyCurvePlugin(context)

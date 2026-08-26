@@ -1,4 +1,5 @@
-data/
+tmp/
+./data/
 lightning_logs/
 .vscode/
 
