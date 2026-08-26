@@ -13,7 +13,6 @@ import urllib.parse
 from werkzeug import wrappers
 
 from tensorboard.backend import http_util
-from tensorboard.backend.event_processing import event_file_loader
 from tensorboard.compat.proto import types_pb2
 from tensorboard.plugins import base_plugin
 
@@ -24,15 +23,6 @@ _MIME_TYPES = {
     ".css": "text/css",
     ".html": "text/html",
 }
-
-
-def _event_files(path):
-    """列出目录下的 event 文件（兼容 tfevents.* 与 events.out.tfevents.*）。"""
-    try:
-        names = sorted(n for n in os.listdir(path) if "tfevents" in n)
-    except OSError:
-        return []
-    return [os.path.join(path, n) for n in names]
 
 
 class JsonTensorPluginBase(base_plugin.TBPlugin):
@@ -50,7 +40,7 @@ class JsonTensorPluginBase(base_plugin.TBPlugin):
         self._cache_result = None
 
     def is_active(self):
-        return bool(self._scan())
+        return self.plugin_name in self._context.multiplexer.ActivePlugins()
 
     def frontend_metadata(self):
         return base_plugin.FrontendMetadata(
@@ -66,112 +56,71 @@ class JsonTensorPluginBase(base_plugin.TBPlugin):
             "/ui/*": self._serve_static,
         }
 
-    # ------------------------------------------------------------------
-    # 数据扫描
-    # ------------------------------------------------------------------
-    def _run_paths(self):
-        """返回 {run: 目录}。优先使用 multiplexer 的 run 发现结果。"""
-        multiplexer = getattr(self._context, "multiplexer", None)
-        if multiplexer is not None:
-            try:
-                paths = multiplexer.RunPaths()
-                if paths:
-                    return dict(paths)
-            except Exception:  # pragma: no cover - 依赖 TensorBoard 内部行为
-                pass
-        logdir = self._context.logdir
-        runs = {}
-        if logdir and os.path.isdir(logdir):
-            for name in sorted(os.listdir(logdir)):
-                child = os.path.join(logdir, name)
-                if os.path.isdir(child):
-                    runs[name] = child
-            runs["."] = logdir
-        return runs
-
     def _scan(self):
-        """扫描全部 event 文件，返回 {run: {tag: entry}}。
+        """从 TensorBoard 原生 multiplexer 读取 {run: {tag: entry}}。
 
         entry 含 displayName/description/data（按 step 排序的曲线列表）。
         """
-        runs = self._run_paths()
+        multiplexer = self._context.multiplexer
+        plugin_tags = multiplexer.PluginRunToTagToContent(self.plugin_name)
+        snapshots = {}
         signature = []
-        for run, path in sorted(runs.items()):
-            for full in _event_files(path):
-                try:
-                    stat = os.stat(full)
-                    signature.append((run, os.path.basename(full), stat.st_mtime_ns, stat.st_size))
-                except OSError:
-                    continue
+        for run, tags in sorted(plugin_tags.items()):
+            for tag in sorted(tags):
+                metadata = multiplexer.SummaryMetadata(run, tag)
+                events = multiplexer.Tensors(run, tag)
+                snapshots[(run, tag)] = (metadata, events)
+                signature.append(
+                    (
+                        run,
+                        tag,
+                        tuple((event.step, event.wall_time) for event in events),
+                    )
+                )
         signature = tuple(signature)
         if signature == self._cache_signature:
             return self._cache_result
 
         result = {}
-        for run, path in runs.items():
-            tags = {}
-            for full in _event_files(path):
-                loader = event_file_loader.EventFileLoader(full)
-                for event in loader.Load():
-                    if not event.HasField("summary"):
-                        continue
-                    for value in event.summary.value:
-                        entry = self._parse_value(event, value)
-                        if entry is None:
-                            continue
-                        tag_entry = tags.setdefault(
-                            value.tag,
-                            {
-                                "displayName": None,
-                                "description": None,
-                                "data": [],
-                            },
-                        )
-                        if entry["displayName"]:
-                            tag_entry["displayName"] = entry["displayName"]
-                        if entry["description"]:
-                            tag_entry["description"] = entry["description"]
-                        tag_entry["data"].append(entry["datum"])
-            for tag_entry in tags.values():
-                tag_entry["data"].sort(key=lambda d: (d["step"], d["wall_time"]))
-            if tags:
-                result[run] = tags
+        for (run, tag), (metadata, events) in snapshots.items():
+            tag_entry = {
+                "displayName": metadata.display_name or None,
+                "description": metadata.summary_description or None,
+                "data": [],
+            }
+            for event in events:
+                datum = self._parse_tensor_event(event)
+                if datum is not None:
+                    tag_entry["data"].append(datum)
+            tag_entry["data"].sort(key=lambda d: (d["step"], d["wall_time"]))
+            if tag_entry["data"]:
+                result.setdefault(run, {})[tag] = tag_entry
         self._cache_signature = signature
         self._cache_result = result
         return result
 
-    def _parse_value(self, event, value):
-        if not value.HasField("tensor"):
+    def _parse_tensor_event(self, event):
+        points = self._parse_tensor(event.tensor_proto)
+        if points is None:
             return None
-        if value.tensor.dtype != types_pb2.DT_STRING:
+        return {
+            "wall_time": event.wall_time,
+            "step": event.step,
+            "points": points,
+        }
+
+    def _parse_tensor(self, tensor):
+        if tensor.dtype != types_pb2.DT_STRING:
             return None
-        if not value.tensor.string_val:
+        if not tensor.string_val:
             return None
-        if value.HasField("metadata"):
-            plugin_name = value.metadata.plugin_data.plugin_name
-            if plugin_name and plugin_name != self.plugin_name:
-                return None
         try:
-            points = json.loads(value.tensor.string_val[0])
+            points = json.loads(tensor.string_val[0])
         except (ValueError, UnicodeDecodeError):
             return None
         if not isinstance(points, list):
             return None
-        display_name = None
-        description = None
-        if value.HasField("metadata"):
-            display_name = value.metadata.display_name or None
-            description = value.metadata.summary_description or None
-        return {
-            "displayName": display_name,
-            "description": description,
-            "datum": {
-                "wall_time": event.wall_time,
-                "step": event.step,
-                # JSON 载荷原样透传，语义由插件前端解释
-                "points": points,
-            },
-        }
+        return points
 
     # ------------------------------------------------------------------
     # HTTP 路由

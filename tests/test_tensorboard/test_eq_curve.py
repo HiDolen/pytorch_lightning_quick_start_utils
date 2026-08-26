@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 from tensorboard.backend.event_processing import event_file_loader
+from tensorboard.backend.event_processing import plugin_event_multiplexer
 from torch.utils.tensorboard import SummaryWriter
 
 import pl_utils  # noqa: F401
@@ -15,15 +16,20 @@ from cli.tensorboard_plugins.eq_curve import EQ_CURVE_PLUGIN_NAME, EqCurvePlugin
 class _FakeContext:
     """只携带 logdir 的极简 context"""
 
-    def __init__(self, logdir):
+    def __init__(self, logdir, multiplexer):
         self.logdir = logdir
-        self.multiplexer = None
+        self.multiplexer = multiplexer
 
 
 def _make_plugin(logdir):
     # 绕过 __init__，不需要真实 TensorBoard 上下文
     plugin = EqCurvePlugin.__new__(EqCurvePlugin)
-    plugin._context = _FakeContext(logdir)
+    multiplexer = plugin_event_multiplexer.EventMultiplexer(
+        tensor_size_guidance={"eq_curves": 100, "xy_curves": 100}
+    )
+    multiplexer.AddRunsFromDirectory(logdir)
+    multiplexer.Reload()
+    plugin._context = _FakeContext(logdir, multiplexer)
     plugin._cache_signature = None
     plugin._cache_result = None
     return plugin
@@ -66,10 +72,10 @@ class EqCurvePluginTest(unittest.TestCase):
 
     def test_scan_ignores_other_plugin_data(self):
         """xy_curves 的数据不应出现在 eq_curves 插件的扫描结果里。"""
-        plugin = _make_plugin(self.logdir)
         writer = SummaryWriter(os.path.join(self.logdir, "train"))
         writer.add_curve("curves/sine", [[0.0, 0.0], [1.0, 1.0]], 0)
         writer.close()
+        plugin = _make_plugin(self.logdir)
         scan = plugin._scan()
         self.assertIn("eq/response", scan["train"])
         self.assertNotIn("curves/sine", scan["train"])

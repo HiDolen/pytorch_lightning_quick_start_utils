@@ -9,20 +9,26 @@ from torch.utils.tensorboard import SummaryWriter
 
 import pl_utils  # noqa: F401
 from cli.tensorboard_plugins.xy_curve import XyCurvePlugin
+from tensorboard.backend.event_processing import plugin_event_multiplexer
 
 
 class _FakeContext:
     """只携带 logdir 的极简 context"""
 
-    def __init__(self, logdir):
+    def __init__(self, logdir, multiplexer):
         self.logdir = logdir
-        self.multiplexer = None
+        self.multiplexer = multiplexer
 
 
 def _make_plugin(logdir):
     # 绕过 __init__，不需要真实 TensorBoard 上下文
     plugin = XyCurvePlugin.__new__(XyCurvePlugin)
-    plugin._context = _FakeContext(logdir)
+    multiplexer = plugin_event_multiplexer.EventMultiplexer(
+        tensor_size_guidance={"eq_curves": 100, "xy_curves": 100}
+    )
+    multiplexer.AddRunsFromDirectory(logdir)
+    multiplexer.Reload()
+    plugin._context = _FakeContext(logdir, multiplexer)
     plugin._cache_signature = None
     plugin._cache_result = None
     return plugin
@@ -54,7 +60,7 @@ class XyCurvePluginTest(unittest.TestCase):
         self.assertEqual(data[0]["points"][1], [0.5, 1.0])
 
     def test_scan_caches_by_file_signature(self):
-        """event 文件未变化时,两次扫描应命中缓存返回同一对象。"""
+        """原生数据状态未变化时,两次扫描应命中缓存返回同一对象。"""
         plugin = _make_plugin(self.logdir)
         first = plugin._scan()
         second = plugin._scan()
@@ -66,21 +72,15 @@ class XyCurvePluginTest(unittest.TestCase):
         plugin = _make_plugin(self.logdir)
         self.assertTrue(plugin.is_active())
 
-    def test_parse_value_ignores_non_string_tensors(self):
+    def test_parse_tensor_ignores_non_string_tensors(self):
         """数据约定是 DT_STRING(承载 JSON);其他 dtype 应被解析层丢弃。"""
-        from tensorboard.compat.proto import summary_pb2, tensor_pb2, types_pb2
-
-        class _Event:
-            # _parse_value 只读 wall_time/step 两个字段
-            wall_time = 123.0
-            step = 7
+        from tensorboard.compat.proto import tensor_pb2, types_pb2
 
         plugin = _make_plugin(self.logdir)
-        value = summary_pb2.Summary.Value(
-            tag="x",
-            tensor=tensor_pb2.TensorProto(dtype=types_pb2.DT_FLOAT),
+        tensor = tensor_pb2.TensorProto(
+            dtype=types_pb2.DT_FLOAT,
         )
-        self.assertIsNone(plugin._parse_value(_Event(), value))
+        self.assertIsNone(plugin._parse_tensor(tensor))
 
 
 if __name__ == "__main__":

@@ -9,6 +9,6 @@ def run_tensorboard() -> int:
         "--logdir",
         "./",
         "--samples_per_plugin",
-        "scalars=20000,images=200",
+        "scalars=20000,images=200,eq_curves=100,xy_curves=100",
     ]
     return subprocess.run(command, check=False).returncode
