@@ -34,9 +34,7 @@ class EqCurvePluginTest(unittest.TestCase):
     def setUp(self):
         self.logdir = tempfile.mkdtemp(prefix="eq_curve_test_")
         writer = SummaryWriter(os.path.join(self.logdir, "train"))
-        writer.add_eq_curve(
-            "eq/response", [[20.0, 0.0], [1000.0, 3.0], [16000.0, 0.0]], 0
-        )
+        writer.add_eq_curve("eq/response", [[20.0, 0.0], [1000.0, 3.0], [16000.0, 0.0]], 0)
         writer.close()
 
     def tearDown(self):
@@ -50,9 +48,7 @@ class EqCurvePluginTest(unittest.TestCase):
         for event in loader.Load():
             for value in event.summary.value:
                 if value.tag == "eq/response":
-                    self.assertEqual(
-                        value.metadata.plugin_data.plugin_name, EQ_CURVE_PLUGIN_NAME
-                    )
+                    self.assertEqual(value.metadata.plugin_data.plugin_name, EQ_CURVE_PLUGIN_NAME)
                     return
         self.fail("未找到 eq/response")
 

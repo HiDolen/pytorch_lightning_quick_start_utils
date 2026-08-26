@@ -15,20 +15,12 @@ XY_CURVE_PLUGIN_NAME = "xy_curves"
 def add_curve(writer, tag, points, step):
     """向 SummaryWriter 写入一条 XY 曲线（``[[x, y], ...]``）。"""
     tensor = tensor_pb2.TensorProto(dtype=types_pb2.DT_STRING)
-    tensor.string_val.append(
-        json.dumps(points, separators=(",", ":")).encode("utf-8")
-    )
+    tensor.string_val.append(json.dumps(points, separators=(",", ":")).encode("utf-8"))
     metadata = summary_pb2.SummaryMetadata(
-        plugin_data=summary_pb2.SummaryMetadata.PluginData(
-            plugin_name=XY_CURVE_PLUGIN_NAME
-        )
+        plugin_data=summary_pb2.SummaryMetadata.PluginData(plugin_name=XY_CURVE_PLUGIN_NAME)
     )
     summary_proto = summary_pb2.Summary(
-        value=[
-            summary_pb2.Summary.Value(
-                tag=tag, tensor=tensor, metadata=metadata
-            )
-        ]
+        value=[summary_pb2.Summary.Value(tag=tag, tensor=tensor, metadata=metadata)]
     )
     writer._get_file_writer().add_summary(summary_proto, step)
 

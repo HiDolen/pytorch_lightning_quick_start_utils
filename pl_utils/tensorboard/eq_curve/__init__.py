@@ -15,20 +15,12 @@ EQ_CURVE_PLUGIN_NAME = "eq_curves"
 def add_eq_curve(writer, tag, points, step):
     """向 SummaryWriter 写入一条 EQ 曲线（x 轴为频率 Hz）。"""
     tensor = tensor_pb2.TensorProto(dtype=types_pb2.DT_STRING)
-    tensor.string_val.append(
-        json.dumps(points, separators=(",", ":")).encode("utf-8")
-    )
+    tensor.string_val.append(json.dumps(points, separators=(",", ":")).encode("utf-8"))
     metadata = summary_pb2.SummaryMetadata(
-        plugin_data=summary_pb2.SummaryMetadata.PluginData(
-            plugin_name=EQ_CURVE_PLUGIN_NAME
-        )
+        plugin_data=summary_pb2.SummaryMetadata.PluginData(plugin_name=EQ_CURVE_PLUGIN_NAME)
     )
     summary_proto = summary_pb2.Summary(
-        value=[
-            summary_pb2.Summary.Value(
-                tag=tag, tensor=tensor, metadata=metadata
-            )
-        ]
+        value=[summary_pb2.Summary.Value(tag=tag, tensor=tensor, metadata=metadata)]
     )
     writer._get_file_writer().add_summary(summary_proto, step)
 

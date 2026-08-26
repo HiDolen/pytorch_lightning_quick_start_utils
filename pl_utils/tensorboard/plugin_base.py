@@ -100,9 +100,7 @@ class JsonTensorPluginBase(base_plugin.TBPlugin):
             for full in _event_files(path):
                 try:
                     stat = os.stat(full)
-                    signature.append(
-                        (run, os.path.basename(full), stat.st_mtime_ns, stat.st_size)
-                    )
+                    signature.append((run, os.path.basename(full), stat.st_mtime_ns, stat.st_size))
                 except OSError:
                     continue
         signature = tuple(signature)
@@ -221,9 +219,7 @@ class JsonTensorPluginBase(base_plugin.TBPlugin):
         return self._send_file(request, full)
 
     def _send_file(self, request, path):
-        content_type = _MIME_TYPES.get(
-            os.path.splitext(path)[1], "application/octet-stream"
-        )
+        content_type = _MIME_TYPES.get(os.path.splitext(path)[1], "application/octet-stream")
         with open(path, "rb") as f:
             content = f.read()
         return http_util.Respond(request, content, content_type)
