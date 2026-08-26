@@ -1,37 +1,37 @@
-"""XY Curves 插件测试:扫描、缓存与 _parse_value 解析容错。"""
+"""XY Curves 插件测试:DataProvider 读取与 JSON 解析容错。"""
 
 import os
 import shutil
 import tempfile
+import types
 import unittest
 
+import numpy as np
+from tensorboard import context
+from tensorboard.backend.event_processing import data_provider as event_data_provider
+from tensorboard.backend.event_processing import plugin_event_multiplexer
 from torch.utils.tensorboard import SummaryWriter
 
 import pl_utils  # noqa: F401
 from cli.tensorboard_plugins.xy_curve import XyCurvePlugin
-from tensorboard.backend.event_processing import plugin_event_multiplexer
 
 
 class _FakeContext:
-    """只携带 logdir 的极简 context"""
+    """只携带插件初始化所需字段的极简 context。"""
 
-    def __init__(self, logdir, multiplexer):
-        self.logdir = logdir
-        self.multiplexer = multiplexer
+    def __init__(self, data_provider):
+        self.data_provider = data_provider
+        self.sampling_hints = {}
 
 
 def _make_plugin(logdir):
-    # 绕过 __init__，不需要真实 TensorBoard 上下文
-    plugin = XyCurvePlugin.__new__(XyCurvePlugin)
     multiplexer = plugin_event_multiplexer.EventMultiplexer(
         tensor_size_guidance={"eq_curves": 100, "xy_curves": 100}
     )
     multiplexer.AddRunsFromDirectory(logdir)
     multiplexer.Reload()
-    plugin._context = _FakeContext(logdir, multiplexer)
-    plugin._cache_signature = None
-    plugin._cache_result = None
-    return plugin
+    data_provider = event_data_provider.MultiplexerDataProvider(multiplexer, logdir)
+    return XyCurvePlugin(_FakeContext(data_provider))
 
 
 class XyCurvePluginTest(unittest.TestCase):
@@ -44,43 +44,38 @@ class XyCurvePluginTest(unittest.TestCase):
         writer.add_curve("curves/sine", [[0.0, 0.0], [0.5, 1.0], [1.0, 0.0]], 0)
         writer.add_curve("curves/sine", [[0.0, 0.1], [0.5, 0.9], [1.0, 0.1]], 1)
         writer.close()
+        self.ctx = context.RequestContext()
 
     def tearDown(self):
         shutil.rmtree(self.logdir, ignore_errors=True)
 
-    def test_scan_finds_runs_tags_and_points(self):
-        """扫描应按 (run, tag) 组织,同 tag 多 step 按时间排序。"""
+    def test_provider_finds_runs_tags_and_points(self):
+        """DataProvider 应按 (run, tag) 组织，同 tag 多 step 按时间排序。"""
         plugin = _make_plugin(self.logdir)
-        scan = plugin._scan()
-        self.assertIn("train", scan)
-        self.assertIn("curves/sine", scan["train"])
-        data = scan["train"]["curves/sine"]["data"]
+        tags = plugin._tags(self.ctx, "experiment")
+        self.assertIn("train", tags)
+        self.assertIn("curves/sine", tags["train"])
+        data = plugin._data(self.ctx, "experiment", "train", "curves/sine")
         self.assertEqual(len(data), 2)
         self.assertEqual([d["step"] for d in data], [0, 1])
         self.assertEqual(data[0]["points"][1], [0.5, 1.0])
 
-    def test_scan_caches_by_file_signature(self):
-        """原生数据状态未变化时,两次扫描应命中缓存返回同一对象。"""
+    def test_provider_lists_plugin(self):
+        """插件激活状态由 TensorBoard 的 DataProvider 插件列表决定。"""
         plugin = _make_plugin(self.logdir)
-        first = plugin._scan()
-        second = plugin._scan()
-        # 缓存命中表现为 identity 相同,而非重新构造
-        self.assertIs(first, second)
-
-    def test_is_active(self):
-        """logdir 中存在本插件数据时插件应处于激活状态。"""
-        plugin = _make_plugin(self.logdir)
-        self.assertTrue(plugin.is_active())
+        plugins = plugin._data_provider.list_plugins(self.ctx, experiment_id="experiment")
+        self.assertIn(plugin.plugin_name, plugins)
+        self.assertFalse(plugin.is_active())
 
     def test_parse_tensor_ignores_non_string_tensors(self):
         """数据约定是 DT_STRING(承载 JSON);其他 dtype 应被解析层丢弃。"""
-        from tensorboard.compat.proto import tensor_pb2, types_pb2
-
         plugin = _make_plugin(self.logdir)
-        tensor = tensor_pb2.TensorProto(
-            dtype=types_pb2.DT_FLOAT,
+        event = types.SimpleNamespace(
+            numpy=np.array(1.0),
+            wall_time=0.0,
+            step=0,
         )
-        self.assertIsNone(plugin._parse_tensor(tensor))
+        self.assertIsNone(plugin._parse_tensor_event(event))
 
 
 if __name__ == "__main__":

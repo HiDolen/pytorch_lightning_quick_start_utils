@@ -17,7 +17,8 @@ def add_eq_curve(writer, tag, points, step):
     tensor = tensor_pb2.TensorProto(dtype=types_pb2.DT_STRING)
     tensor.string_val.append(json.dumps(points, separators=(",", ":")).encode("utf-8"))
     metadata = summary_pb2.SummaryMetadata(
-        plugin_data=summary_pb2.SummaryMetadata.PluginData(plugin_name=EQ_CURVE_PLUGIN_NAME)
+        plugin_data=summary_pb2.SummaryMetadata.PluginData(plugin_name=EQ_CURVE_PLUGIN_NAME),
+        data_class=summary_pb2.DATA_CLASS_TENSOR,
     )
     summary_proto = summary_pb2.Summary(
         value=[summary_pb2.Summary.Value(tag=tag, tensor=tensor, metadata=metadata)]

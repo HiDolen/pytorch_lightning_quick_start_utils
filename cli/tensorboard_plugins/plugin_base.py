@@ -1,9 +1,10 @@
 """JSON tensor 插件通用后端基类。
 
 数据约定：每个 (run, tag, step) 记录一个 DT_STRING tensor，内容为 JSON
-序列化的列表（载荷语义由各插件前端解释，如曲线点列表）。基类提供 run
-发现、event 扫描与缓存、/tags /data 路由、/ui/* 静态资源服务，子类只需
-声明 plugin_name / tab_name / es_module_path（可选覆写 ui_root）。
+序列化的列表（载荷语义由各插件前端解释，如曲线点列表）。基类经
+TensorBoard DataProvider 提供 run 发现、/tags /data 路由、/ui/* 静态资源
+服务，子类只需声明 plugin_name / tab_name / es_module_path（可选覆写
+ui_root）。
 """
 
 import json
@@ -12,8 +13,9 @@ import urllib.parse
 
 from werkzeug import wrappers
 
+from tensorboard import plugin_util
 from tensorboard.backend import http_util
-from tensorboard.compat.proto import types_pb2
+from tensorboard.data import provider
 from tensorboard.plugins import base_plugin
 
 _DEFAULT_UI_ROOT = os.path.dirname(os.path.abspath(__file__))  # 本包目录
@@ -35,12 +37,11 @@ class JsonTensorPluginBase(base_plugin.TBPlugin):
 
     def __init__(self, context):
         super().__init__(context)
-        self._context = context
-        self._cache_signature = None
-        self._cache_result = None
+        self._data_provider = context.data_provider
+        self._downsample_to = (context.sampling_hints or {}).get(self.plugin_name, 100)
 
     def is_active(self):
-        return self.plugin_name in self._context.multiplexer.ActivePlugins()
+        return False
 
     def frontend_metadata(self):
         return base_plugin.FrontendMetadata(
@@ -56,51 +57,47 @@ class JsonTensorPluginBase(base_plugin.TBPlugin):
             "/ui/*": self._serve_static,
         }
 
-    def _scan(self):
-        """从 TensorBoard 原生 multiplexer 读取 {run: {tag: entry}}。
-
-        entry 含 displayName/description/data（按 step 排序的曲线列表）。
-        """
-        multiplexer = self._context.multiplexer
-        plugin_tags = multiplexer.PluginRunToTagToContent(self.plugin_name)
-        snapshots = {}
-        signature = []
-        for run, tags in sorted(plugin_tags.items()):
-            for tag in sorted(tags):
-                metadata = multiplexer.SummaryMetadata(run, tag)
-                events = multiplexer.Tensors(run, tag)
-                snapshots[(run, tag)] = (metadata, events)
-                signature.append(
-                    (
-                        run,
-                        tag,
-                        tuple((event.step, event.wall_time) for event in events),
-                    )
-                )
-        signature = tuple(signature)
-        if signature == self._cache_signature:
-            return self._cache_result
-
-        result = {}
-        for (run, tag), (metadata, events) in snapshots.items():
-            tag_entry = {
-                "displayName": metadata.display_name or None,
-                "description": metadata.summary_description or None,
-                "data": [],
+    def _tags(self, ctx, experiment):
+        series = self._data_provider.list_tensors(
+            ctx,
+            experiment_id=experiment,
+            plugin_name=self.plugin_name,
+        )
+        return {
+            run: {
+                tag: {
+                    "displayName": metadata.display_name or None,
+                    "description": metadata.description or None,
+                }
+                for tag, metadata in tags.items()
             }
-            for event in events:
-                datum = self._parse_tensor_event(event)
-                if datum is not None:
-                    tag_entry["data"].append(datum)
-            tag_entry["data"].sort(key=lambda d: (d["step"], d["wall_time"]))
-            if tag_entry["data"]:
-                result.setdefault(run, {})[tag] = tag_entry
-        self._cache_signature = signature
-        self._cache_result = result
-        return result
+            for run, tags in series.items()
+        }
+
+    def _data(self, ctx, experiment, run, tag):
+        series = self._data_provider.read_tensors(
+            ctx,
+            experiment_id=experiment,
+            plugin_name=self.plugin_name,
+            downsample=self._downsample_to,
+            run_tag_filter=provider.RunTagFilter(runs=[run], tags=[tag]),
+        )
+        data = []
+        for event in series.get(run, {}).get(tag, []):
+            datum = self._parse_tensor_event(event)
+            if datum is not None:
+                data.append(datum)
+        data.sort(key=lambda datum: (datum["step"], datum["wall_time"]))
+        return data
 
     def _parse_tensor_event(self, event):
-        points = self._parse_tensor(event.tensor_proto)
+        try:
+            payload = event.numpy.item()
+        except ValueError:
+            return None
+        if not isinstance(payload, (bytes, str)):
+            return None
+        points = self._parse_json(payload)
         if points is None:
             return None
         return {
@@ -109,13 +106,9 @@ class JsonTensorPluginBase(base_plugin.TBPlugin):
             "points": points,
         }
 
-    def _parse_tensor(self, tensor):
-        if tensor.dtype != types_pb2.DT_STRING:
-            return None
-        if not tensor.string_val:
-            return None
+    def _parse_json(self, payload):
         try:
-            points = json.loads(tensor.string_val[0])
+            points = json.loads(payload)
         except (ValueError, UnicodeDecodeError):
             return None
         if not isinstance(points, list):
@@ -127,16 +120,9 @@ class JsonTensorPluginBase(base_plugin.TBPlugin):
     # ------------------------------------------------------------------
     @wrappers.Request.application
     def _serve_tags(self, request):
-        scan = self._scan()
-        index = {}
-        for run, tags in scan.items():
-            index[run] = {
-                tag: {
-                    "displayName": entry["displayName"],
-                    "description": entry["description"],
-                }
-                for tag, entry in tags.items()
-            }
+        ctx = plugin_util.context(request.environ)
+        experiment = plugin_util.experiment_id(request.environ)
+        index = self._tags(ctx, experiment)
         return http_util.Respond(request, json.dumps(index), "application/json")
 
     @wrappers.Request.application
@@ -145,9 +131,9 @@ class JsonTensorPluginBase(base_plugin.TBPlugin):
         tag = request.args.get("tag")
         data = []
         if run is not None and tag is not None:
-            entry = self._scan().get(run, {}).get(tag)
-            if entry:
-                data = entry["data"]
+            ctx = plugin_util.context(request.environ)
+            experiment = plugin_util.experiment_id(request.environ)
+            data = self._data(ctx, experiment, run, tag)
         return http_util.Respond(request, json.dumps(data), "application/json")
 
     @wrappers.Request.application
