@@ -5,6 +5,26 @@ import '../shared/histogram/tf_histogram_dashboard.js';
 import {eqCurvesToVz} from './frequency_adapter.js';
 import {enableSharedYAxis} from './shared_y_axis.js';
 
+// 接入宿主的刷新广播（experimental IPC），保证 TensorBoard 刷新日志能立即更新
+function listenForReload(onReload) {
+  const channel = new MessageChannel();
+  channel.port1.onmessage = (event) => {
+    let msg = null;
+    try {
+      msg = JSON.parse(event.data);
+    } catch (e) {
+      return;
+    }
+    if (!msg || msg.isReply) return;
+    // 宿主按 sendMessage 语义等待回复，必须回一条 reply
+    channel.port1.postMessage(
+      JSON.stringify({type: msg.type, id: msg.id, payload: null, error: null, isReply: true})
+    );
+    if (msg.type === 'experimental.DataReloaded') onReload();
+  };
+  window.parent.postMessage('experimental.bootstrap', '*', [channel.port2]);
+}
+
 export function render() {
   var dashboard = document.createElement('tf-histogram-dashboard');
   dashboard.tagsProvider = async () => {
@@ -19,6 +39,15 @@ export function render() {
   };
   dashboard.toVz = eqCurvesToVz;
   enableSharedYAxis(dashboard);
+  listenForReload(() => dashboard.reload());
+    // 重新拉取数据，在卡片上更新数据
+  dashboard._reloadHistograms = () => {
+    dashboard._cards.forEach((card) => {
+      dashboard.dataProvider(card._run, card._tag).then((data) => {
+        card.setSeriesData(card._run, dashboard.toVz(data));
+      });
+    });
+  };
   dashboard.style.display = 'flex';
   dashboard.style.height = '100%';
   document.body.style.margin = '0';
