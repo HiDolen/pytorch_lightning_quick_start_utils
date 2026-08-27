@@ -8,6 +8,7 @@
 // mode. Since this plugin runs in its own iframe with its own module realm,
 // we relabel it by wrapping d3.axisBottom here — the shared lib stays pristine.
 import d3 from '../shared/histogram/vendor/d3-esm.js';
+import {VzHistogramTimeseries} from '../shared/histogram/renderer/vz_histogram_timeseries.js';
 import {curvesToVz} from '../shared/histogram/data/exact_curve_adapter.js';
 
 export function hzToLog(hz) {
@@ -63,6 +64,41 @@ d3.axisBottom = function (scale) {
       });
   }
   return axis;
+};
+
+// shared 渲染器会对 x 轴 domain 调 `.nice()`，
+// 而它作用在裸 log10 数值上会被取整，对音乐频率轴毫无意义。
+// 正 domain（即 log 频率轴，同 axisBottom 补丁的
+// 判定）保留数据的精确范围。
+const origScaleLinear = d3.scaleLinear;
+d3.scaleLinear = function () {
+  const scale = origScaleLinear();
+  const origNice = scale.nice;
+  scale.nice = function () {
+    if (scale.domain()[0] > 0) return scale;
+    return origNice.apply(scale, arguments);
+  };
+  return scale;
+};
+
+// domain 改为数据精确范围后，首尾刻度即实测频率范围，但 shared CSS 会
+// 隔一个隐藏刻度标签，可能吞掉最左边的 "20"。参照渲染器自己的 `.small`
+// 规则让首尾标签始终显示，且只作用于频率轴（.axis.x）。
+const origRedraw = VzHistogramTimeseries.prototype.redraw;
+VzHistogramTimeseries.prototype.redraw = function () {
+  const result = origRedraw.apply(this, arguments);
+  const root = this.shadowRoot;
+  if (root && !root.getElementById('eq-endpoint-ticks')) {
+    const style = document.createElement('style');
+    style.id = 'eq-endpoint-ticks';
+    style.textContent =
+      '.medium .axis.x .tick:first-of-type text,' +
+      '.medium .axis.x .tick:last-of-type text,' +
+      '.large .axis.x .tick:first-of-type text,' +
+      '.large .axis.x .tick:last-of-type text{display: block;}';
+    root.appendChild(style);
+  }
+  return result;
 };
 
 // The renderer writes x-axis hover labels with its own stock numeric format,
