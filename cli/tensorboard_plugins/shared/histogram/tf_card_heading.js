@@ -39,18 +39,15 @@ const TEMPLATE = `
       <figcaption class="content">
         <div class="heading-row">
           <div itemprop="name" class="heading-label name"></div>
-          <span>
+        </div>
+        <div class="heading-row">
+          <span class="run-wrap">
             <span
               itemprop="run"
               id="heading-run"
-              class="heading-label heading-right run"
+              class="heading-label run"
             ></span>
           </span>
-        </div>
-        <div class="heading-row">
-          <div class="heading-label">
-            tag: <span itemprop="tag"></span>
-          </div>
         </div>
         <slot></slot>
       </figcaption>
@@ -104,6 +101,11 @@ const STYLE = `
 
       .name {
         font-size: 14px;
+        /* 单行截断,保证各卡片头部等高 */
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 1;
+        overflow: hidden;
       }
 
       .run {
@@ -112,6 +114,17 @@ const STYLE = `
         border-radius: 3px;
         font-weight: bold;
         padding: 1px 4px 2px;
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* run 徽章独占一行,宽度贴合内容,超长截断 */
+      .run-wrap {
+        flex-shrink: 1;
+        min-width: 0;
+        max-width: 100%;
       }
 
       .paper-icon-button {
@@ -159,8 +172,6 @@ export class TfCardHeading extends HTMLElement {
     this._root = root;
     this._nameEl = root.querySelector('.name');
     this._runEl = root.querySelector('#heading-run');
-    this._tagRow = root.querySelector('.heading-row:nth-of-type(2)');
-    this._tagEl = root.querySelector('[itemprop="tag"]');
     this._infoButton = root.querySelector('.paper-icon-button');
     this._dialog = root.querySelector('.paper-dialog');
     this._dialogScrollable = root.querySelector('.paper-dialog-scrollable');
@@ -243,7 +254,6 @@ export class TfCardHeading extends HTMLElement {
     var run = this._run || null;
     var description = this._description || null;
     var nameLabel = displayName || tag || '';
-    var tagLabel = tag && tag !== displayName ? tag : '';
     if (nameLabel) {
       this._nameEl.textContent = nameLabel;
       this._nameEl.style.display = '';
@@ -255,12 +265,6 @@ export class TfCardHeading extends HTMLElement {
       this._runEl.parentElement.style.display = '';
     } else {
       this._runEl.parentElement.style.display = 'none';
-    }
-    if (tagLabel) {
-      this._tagEl.textContent = tagLabel;
-      this._tagRow.style.display = '';
-    } else {
-      this._tagRow.style.display = 'none';
     }
     if (description) {
       this._infoButton.hidden = false;
