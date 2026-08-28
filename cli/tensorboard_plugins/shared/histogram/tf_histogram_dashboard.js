@@ -331,6 +331,39 @@ const STYLE = `
       }
 `;
 
+// run 排序：与 TB Time Series 的 runs 表格一致（无数字前缀在前，数字按
+// 数值比较，前缀相同再比剩余后缀；见 webapp/runs/views/runs_table/sorting_utils.ts）
+function compareRunNames(a, b) {
+  const parseNumericPrefix = (value) => {
+    if (!isNaN(parseInt(value))) return parseInt(value);
+    for (let i = 0; i < value.length; i++) {
+      if (isNaN(parseInt(value[i]))) {
+        if (i === 0) return undefined;
+        return parseInt(value.slice(0, i));
+      }
+    }
+    return undefined;
+  };
+  if (a === b) return 0;
+  const aP = parseNumericPrefix(a);
+  const bP = parseNumericPrefix(b);
+  if ((aP === undefined || bP === undefined) && aP !== bP) {
+    return aP === undefined ? -1 : 1;
+  }
+  if (aP !== undefined && bP !== undefined) {
+    if (aP === bP) {
+      const aS = a.slice(String(aP).length) || undefined;
+      const bS = b.slice(String(bP).length) || undefined;
+      if (aS === bS) return 0;
+      if (aS === undefined) return -1;
+      if (bS === undefined) return 1;
+      return aS < bS ? -1 : 1;
+    }
+    return aP < bP ? -1 : 1;
+  }
+  return a < b ? -1 : 1;
+}
+
 export class TfHistogramDashboard extends HTMLElement {
   constructor() {
     super();
@@ -399,9 +432,11 @@ export class TfHistogramDashboard extends HTMLElement {
   _fetchTags() {
     return this.tagsProvider().then((runToTagInfo) => {
       const runToTag = {};
-      Object.keys(runToTagInfo).forEach((run) => {
-        runToTag[run] = Object.keys(runToTagInfo[run]);
-      });
+      Object.keys(runToTagInfo)
+        .sort(compareRunNames)
+        .forEach((run) => {
+          runToTag[run] = Object.keys(runToTagInfo[run]);
+        });
       const tags = getTags(runToTag);
       this._dataNotFound = tags.length === 0;
       this._runToTag = runToTag;
