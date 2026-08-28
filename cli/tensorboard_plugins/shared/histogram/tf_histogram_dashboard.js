@@ -381,6 +381,7 @@ export class TfHistogramDashboard extends HTMLElement {
     this._histogramMode = 'offset';
     this._timeProperty = 'step';
     this._selectedRuns = null;
+    this._knownRuns = new Set(); // 曾出现过的 run 集合,用于识别刷新时新出现的 run
     this._runToTag = null;
     this._runToTagInfo = null;
     this._dataNotFound = false;
@@ -441,9 +442,17 @@ export class TfHistogramDashboard extends HTMLElement {
       this._dataNotFound = tags.length === 0;
       this._runToTag = runToTag;
       this._runToTagInfo = runToTagInfo;
+      const runs = Object.keys(runToTag);
       if (this._selectedRuns === null) {
-        this._selectedRuns = Object.keys(runToTag);
+        this._selectedRuns = runs;
+      } else {
+        // 刷新数据时，新出现的 run 自动勾选，且已有 run 保留勾选状态
+        this._selectedRuns = this._selectedRuns.filter((run) => runToTag[run]);
+        this._selectedRuns = this._selectedRuns.concat(
+          runs.filter((run) => !this._knownRuns.has(run))
+        );
       }
+      runs.forEach((run) => this._knownRuns.add(run));
       this._renderRunsSelector();
       this._renderCategories();
     });
