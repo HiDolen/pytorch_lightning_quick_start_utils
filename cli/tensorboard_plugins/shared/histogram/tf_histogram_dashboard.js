@@ -28,16 +28,6 @@ const TEMPLATE = `
               </div>
             </div>
           </div>
-          <div class="sidebar-section">
-            <div class="option-selector" id="timePropertySelector">
-              <h3>Offset time axis</h3>
-              <div class="content-wrapper">
-                <button class="paper-button" id="step">step</button>
-                <button class="paper-button" id="relative">relative</button>
-                <button class="paper-button" id="wall_time">wall</button>
-              </div>
-            </div>
-          </div>
         </div>
         <div class="sidebar-section runs-selector">
           <div id="runs-selector">
@@ -403,13 +393,6 @@ export class TfHistogramDashboard extends HTMLElement {
           this._setHistogramMode(button.id);
         })
       );
-    root
-      .querySelectorAll('#timePropertySelector .paper-button')
-      .forEach((button) =>
-        button.addEventListener('click', () => {
-          this._setTimeProperty(button.id);
-        })
-      );
     this._tagFilterInput.addEventListener('input', () => {
       this._tagFilter = this._tagFilterInput.value;
       this._updateRegexHint();
@@ -417,7 +400,6 @@ export class TfHistogramDashboard extends HTMLElement {
     });
     this._toggleAll.addEventListener('click', () => this._toggleAllRuns());
     this._setHistogramMode('offset');
-    this._setTimeProperty('step');
   }
 
   connectedCallback() {
@@ -472,16 +454,6 @@ export class TfHistogramDashboard extends HTMLElement {
     // Polymer property binding: every existing chart updates in place,
     // triggering the 500ms mode transition instead of rebuilding the DOM.
     this._cards.forEach((card) => card.setHistogramMode(mode));
-  }
-
-  _setTimeProperty(timeProperty) {
-    this._timeProperty = timeProperty;
-    this._root
-      .querySelectorAll('#timePropertySelector .paper-button')
-      .forEach((button) =>
-        button.classList.toggle('selected', button.id === timeProperty)
-      );
-    this._cards.forEach((card) => card.setTimeProperty(timeProperty));
   }
 
   _toggleAllRuns() {
