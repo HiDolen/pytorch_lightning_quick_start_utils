@@ -4,6 +4,7 @@
 import '../shared/histogram/tf_histogram_dashboard.js';
 import {eqCurvesToVz} from './frequency_adapter.js';
 import {enableSharedYAxis} from './shared_y_axis.js';
+import {installStepRangeSlider} from '../shared/step_range_slider.js';
 
 // 接入宿主的刷新广播（experimental IPC），保证 TensorBoard 刷新日志能立即更新
 function listenForReload(onReload) {
@@ -39,6 +40,7 @@ export function render() {
   };
   dashboard.toVz = eqCurvesToVz;
   enableSharedYAxis(dashboard);
+  installStepRangeSlider(dashboard);
   listenForReload(() => dashboard.reload());
     // 重新拉取数据，在卡片上更新数据
   dashboard._reloadHistograms = () => {
