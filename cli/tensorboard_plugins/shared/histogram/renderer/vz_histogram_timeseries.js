@@ -621,7 +621,7 @@ export class VzHistogramTimeseries extends HTMLElement {
       outlineUpdate.classed('outline-hover', false);
       tooltip.style('opacity', 0);
     }
-    // 联动 hook：宿主监听此事件同步其他图表（detail: {value, step} | null）
+    // 悬停事件（detail: {value, step} | null），供宿主同步其他图表
     function emitHover(detail) {
       self.dispatchEvent(new CustomEvent('histogram-hover', {detail: detail}));
     }
@@ -631,19 +631,24 @@ export class VzHistogramTimeseries extends HTMLElement {
       var step = updateHover(v, null, m);
       emitHover(step == null ? null : {value: v, step: step});
     }
-    // 悬停标记全量更新。m 为 stage 局部鼠标坐标：有鼠标时按鼠标 y 判定最近
-    // 切片、tooltip 跟随鼠标；联动模式（m 为 null）由 forcedStep 指定目标
-    // step、tooltip 落在最近切片的标记点上。返回最近切片的 step。
+    // 全量更新悬停标记，返回最近切片的 step；m 为 stage 局部鼠标坐标
     function updateHover(v, forcedStep, m) {
       showHover();
+      // 宿主可经 _stepFilter 屏蔽切片（如 step 区间过滤）
+      var stepFilter = self._stepFilter || null;
       function hoverXIndex(d) {
         return Math.min(d[binsProp].length - 1, bisect(d[binsProp], v));
       }
       var closestSliceData;
       var closestSliceDistance = Infinity;
       var lastSliceData;
-      hoverUpdate.attr('transform', function (d, i) {
-        var index = hoverXIndex(d);
+      hoverUpdate
+        .style('display', function (d) {
+          return stepFilter && !stepFilter(timeAccessor(d)) ? 'none' : '';
+        })
+        .attr('transform', function (d, i) {
+          if (stepFilter && !stepFilter(timeAccessor(d))) return null;
+          var index = hoverXIndex(d);
         lastSliceData = d;
         var x = xScale(
           d[binsProp][index][xProp] + d[binsProp][index][dxProp] / 2
@@ -660,6 +665,11 @@ export class VzHistogramTimeseries extends HTMLElement {
         }
         return 'translate(' + x + ',' + y + ')';
       });
+      if (!closestSliceData) {
+        // 全部切片被过滤：无可见曲线可悬停
+        clearHover();
+        return null;
+      }
       hoverUpdate.select('text').text(function (d) {
         var index = hoverXIndex(d);
         return d[binsProp][index][yProp];
@@ -728,7 +738,7 @@ export class VzHistogramTimeseries extends HTMLElement {
       var svgMouse = m
         ? d3.mouse(svgNode)
         : (function () {
-            // 联动模式：tooltip 落在最近切片标记点（stage 坐标 -> svg 坐标）
+            // 无鼠标时 tooltip 落在最近切片标记点（stage 坐标 -> svg 坐标）
             var idx = hoverXIndex(closestSliceData);
             var cx = xScale(
               closestSliceData[binsProp][idx][xProp] +
@@ -756,12 +766,12 @@ export class VzHistogramTimeseries extends HTMLElement {
         );
       return closestSliceData ? timeAccessor(closestSliceData) : null;
     }
-    // 供 setLinkedHover/clearLinkedHover 复用（_draw 重建后自动更新）
+    // 闭包引用随 _draw 重建，供 setLinkedHover/clearLinkedHover 使用
     this._hoverUpdate = updateHover;
     this._hoverClear = clearHover;
   }
 
-  // 联动驱动：在其他图表 hover 时，在本图相同 x 值、相同 step 处显示标记
+  // 外部驱动悬停（跨卡同步）：在给定 x 值、step 处显示本图标记
   setLinkedHover(value, step) {
     if (this._hoverUpdate) this._hoverUpdate(value, step, null);
   }

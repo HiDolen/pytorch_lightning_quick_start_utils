@@ -278,10 +278,17 @@ let _steps = [];
 let _lo = null;
 let _hi = null;
 
-// 单卡过滤：区间外的 g.histogram 整组淡出（opacity 为组级，不干扰内部样式）
+// 单卡过滤：区间外的 g.histogram 整组淡出（opacity 为组级，不干扰内部
+// 样式）；同时设置渲染器 _stepFilter，使 hover 忽略被过滤的切片
 function applyFilterToChart(chart) {
-  const root = chart && chart.shadowRoot;
-  if (!root || _lo === null || _hi === null) return;
+  if (!chart) return;
+  if (_lo === null || _hi === null) {
+    chart._stepFilter = null;
+    return;
+  }
+  chart._stepFilter = (step) => step >= _lo && step <= _hi;
+  const root = chart.shadowRoot;
+  if (!root) return;
   root.querySelectorAll('g.histogram').forEach((g) => {
     const d = g.__data__;
     if (!d) return;
