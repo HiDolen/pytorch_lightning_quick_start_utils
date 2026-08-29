@@ -1,6 +1,4 @@
-// 全局 step 区间滑条：挂在 dashboard 中央栏顶部，全部 run/tag 卡片共享。
-// 域为所有卡片 step 的并集；区间外的曲线整体淡出（不改 shared/，仅在此
-// 包装 dataProvider 与 redraw 原型链实现）。
+// 全局 step 区间滑条，挂在 dashboard 中央栏顶部
 import {VzHistogramTimeseries} from './histogram/renderer/vz_histogram_timeseries.js';
 
 const SLIDER_TEMPLATE = `

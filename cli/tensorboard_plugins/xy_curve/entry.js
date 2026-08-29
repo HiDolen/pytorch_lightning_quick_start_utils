@@ -5,6 +5,7 @@
 import '../shared/histogram/tf_histogram_dashboard.js';
 import {curvesToVz} from '../shared/histogram/data/exact_curve_adapter.js';
 import {installStepRangeSlider} from '../shared/step_range_slider.js';
+import {enableOffsetFillFade} from '../shared/offset_fill_fade.js';
 
 // 接入宿主的刷新广播（experimental IPC），保证 TensorBoard 刷新日志能立即更新
 function listenForReload(onReload) {
@@ -27,6 +28,7 @@ function listenForReload(onReload) {
 }
 
 export function render() {
+  enableOffsetFillFade();
   var dashboard = document.createElement('tf-histogram-dashboard');
   dashboard.tagsProvider = async () => {
     const response = await fetch('tags');
