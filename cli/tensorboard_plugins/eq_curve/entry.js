@@ -2,9 +2,10 @@
 // EQ Curves plugin. Identical to the XY Curves entry except that data is
 // adapted onto a log10 frequency axis (see frequency_adapter.js).
 import '../shared/histogram/tf_histogram_dashboard.js';
-import {eqCurvesToVz} from './frequency_adapter.js';
+import {eqCurvesToVz, logToHz} from './frequency_adapter.js';
 import {enableSharedYAxis} from './shared_y_axis.js';
 import {installStepRangeSlider} from '../shared/step_range_slider.js';
+import {enableHoverReadout} from '../shared/hover_readout.js';
 import {enableOffsetFillFade} from '../shared/offset_fill_fade.js';
 import {enableHoverLink} from '../shared/hover_link.js';
 
@@ -45,6 +46,11 @@ export function render() {
   enableSharedYAxis(dashboard);
   enableHoverLink(dashboard);
   installStepRangeSlider(dashboard);
+  // 读数面板头部显示 bin 的真实频率
+  enableHoverReadout(dashboard, (logHz) => {
+    const hz = logToHz(logHz);
+    return (hz >= 1000 ? Math.round(hz) : Math.round(hz * 10) / 10) + ' Hz';
+  });
   listenForReload(() => dashboard.reload());
     // 重新拉取数据，在卡片上更新数据
   dashboard._reloadHistograms = () => {

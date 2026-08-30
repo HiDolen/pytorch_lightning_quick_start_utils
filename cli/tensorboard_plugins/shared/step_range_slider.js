@@ -429,6 +429,10 @@ function refreshSteps() {
   applyFilter();
 }
 
+export function isSingleStepMode() {
+  return !!(_slider && _slider.single);
+}
+
 export function installStepRangeSlider(dashboard) {
   if (_dashboard) return;
   _dashboard = dashboard;
