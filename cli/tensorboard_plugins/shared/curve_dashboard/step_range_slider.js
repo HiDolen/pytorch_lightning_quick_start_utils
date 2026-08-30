@@ -1,5 +1,5 @@
 // 全局 step 区间滑条，挂在 dashboard 中央栏顶部
-import {VzHistogramTimeseries} from './histogram/renderer/vz_histogram_timeseries.js';
+import {VzHistogramTimeseries} from '../histogram/renderer/vz_histogram_timeseries.js';
 
 const SLIDER_TEMPLATE = `
   <div class="eq-srs-header">
@@ -382,13 +382,13 @@ function applyFilterToChart(chart) {
 
 function applyFilter() {
   if (!_dashboard) return;
-  _dashboard._cards.forEach((card) => applyFilterToChart(card.$.chart));
+  _dashboard.getActiveCards().forEach((card) => applyFilterToChart(card.$.chart));
 }
 
 // 双击图表选取单个 step：双击位置对应的 step 取该图最近一次 hover 事件
 // 的 step（渲染器已按 _stepFilter 过滤，双击前必有 mousemove）
 function attachStepPickers() {
-  _dashboard._cards.forEach((card) => {
+  _dashboard.getActiveCards().forEach((card) => {
     const chart = card.$.chart;
     if (!chart || chart.__srsPickBound) return;
     chart.__srsPickBound = true;
@@ -407,12 +407,19 @@ function attachStepPickers() {
 function refreshSteps() {
   attachStepPickers();
   const set = new Set();
-  _dashboard._cards.forEach((card) => {
+  _dashboard.getActiveCards().forEach((card) => {
     const data = (card.$.chart && card.$.chart._data) || [];
     data.forEach((d) => set.add(d.step));
   });
   const steps = Array.from(set).sort((a, b) => a - b);
-  if (steps.length === 0) return;
+  if (steps.length === 0) {
+    _steps = [];
+    _lo = null;
+    _hi = null;
+    _row.hidden = true;
+    _slider.setSteps([], null, null);
+    return;
+  }
   const same =
     steps.length === _steps.length && steps.every((s, i) => s === _steps[i]);
   if (same) return;
@@ -452,13 +459,10 @@ export function installStepRangeSlider(dashboard) {
     applyFilter();
   });
   // 数据每次到达后（新卡片 / 刷新重取）重算可选域；
-  // setTimeout 保证在 setSeriesData 写入卡片之后再收集
-  const origProvider = dashboard.dataProvider;
-  dashboard.dataProvider = (run, tag) =>
-    origProvider(run, tag).then((d) => {
-      setTimeout(refreshSteps, 0);
-      return d;
-    });
+  // card-data-updated 保证此时 setSeriesData 已完成
+  dashboard.addEventListener('card-data-updated', refreshSteps);
+  dashboard.addEventListener('active-cards-changed', refreshSteps);
+  refreshSteps();
   // redraw 后自动套用过滤，覆盖新数据、展开、模式切换等一切重画路径
   const origRedraw = VzHistogramTimeseries.prototype.redraw;
   VzHistogramTimeseries.prototype.redraw = function (...args) {

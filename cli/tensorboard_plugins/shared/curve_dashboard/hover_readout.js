@@ -1,8 +1,8 @@
 // 单 step 模式下的聚合读数面板：悬停任意卡片时，把所有卡片在当前
 // 悬停 x 值、单 step 处的数值汇总到一个跟随鼠标的浮层。
 // 仅单 step 模式激活。
-import d3 from './histogram/vendor/d3-esm.js';
-import {pickTextColor} from './histogram/tf_card_heading.js';
+import d3 from '../histogram/vendor/d3-esm.js';
+import {pickTextColor} from '../histogram/tf_card_heading.js';
 import {isSingleStepMode} from './step_range_slider.js';
 
 const PANEL_STYLE = `
@@ -180,7 +180,7 @@ export function enableHoverReadout(dashboard, formatX) {
     }
     // 只对比与源卡片同分类（同 tag 前缀）下的卡片
     const curCategory = tagCategory(sourceCard._tag || '');
-    const cards = [...dashboard._cards].filter(
+    const cards = dashboard.getActiveCards().filter(
       (card) => tagCategory(card._tag || '') === curCategory
     );
 
@@ -239,19 +239,13 @@ export function enableHoverReadout(dashboard, formatX) {
   }
 
   // 卡片随数据渐进创建，数据到达后再绑定 hover 监听
-  const origProvider = dashboard.dataProvider;
-  dashboard.dataProvider = (run, tag) =>
-    origProvider(run, tag).then((d) => {
-      setTimeout(attach, 0);
-      return d;
-    });
-
-  function attach() {
-    dashboard._cards.forEach((card) => {
-      const chart = card.$.chart;
-      if (!chart || chart.__hroBound) return;
-      chart.__hroBound = true;
-      chart.addEventListener('histogram-hover', (e) => onHover(card, e.detail));
-    });
+  function attach(card) {
+    const chart = card && card.$.chart;
+    if (!chart || chart.__hroBound) return;
+    chart.__hroBound = true;
+    chart.addEventListener('histogram-hover', (e) => onHover(card, e.detail));
   }
+
+  dashboard.addEventListener('card-data-updated', (e) => attach(e.detail.card));
+  dashboard.getActiveCards().forEach(attach);
 }

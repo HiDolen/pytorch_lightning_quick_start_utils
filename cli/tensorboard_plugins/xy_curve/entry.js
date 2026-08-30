@@ -4,11 +4,11 @@
 // curvesToVz (exact curve points -> VzHistogram bins shape).
 import '../shared/histogram/tf_histogram_dashboard.js';
 import {curvesToVz} from '../shared/histogram/data/exact_curve_adapter.js';
-import {installStepRangeSlider} from '../shared/step_range_slider.js';
-import {enableHoverReadout} from '../shared/hover_readout.js';
-import {enableStepCurveReadout} from '../shared/step_curve_readout.js';
-import {enableOffsetFillFade} from '../shared/offset_fill_fade.js';
-import {enableHoverLink} from '../shared/hover_link.js';
+import {installStepRangeSlider} from '../shared/curve_dashboard/step_range_slider.js';
+import {enableHoverReadout} from '../shared/curve_dashboard/hover_readout.js';
+import {enableStepCurveReadout} from '../shared/curve_dashboard/step_curve_readout.js';
+import {enableOffsetFillFade} from '../shared/curve_dashboard/offset_fill_fade.js';
+import {enableHoverLink} from '../shared/curve_dashboard/hover_link.js';
 
 // 接入宿主的刷新广播（experimental IPC），保证 TensorBoard 刷新日志能立即更新
 function listenForReload(onReload) {
@@ -49,14 +49,6 @@ export function render() {
   enableHoverReadout(dashboard);
   enableStepCurveReadout(dashboard);
   listenForReload(() => dashboard.reload());
-  // 重新拉取数据，在卡片上更新数据
-  dashboard._reloadHistograms = () => {
-    dashboard._cards.forEach((card) => {
-      dashboard.dataProvider(card._run, card._tag).then((data) => {
-        card.setSeriesData(card._run, dashboard.toVz(data));
-      });
-    });
-  };
   dashboard.style.display = 'flex';
   dashboard.style.height = '100%';
   document.body.style.margin = '0';

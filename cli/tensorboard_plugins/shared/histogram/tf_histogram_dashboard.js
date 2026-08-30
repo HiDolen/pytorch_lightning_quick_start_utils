@@ -420,9 +420,7 @@ export class TfHistogramDashboard extends HTMLElement {
   }
 
   reload() {
-    this._fetchTags().then(() => {
-      this._reloadHistograms();
-    });
+    return this._fetchTags().then(() => this._reloadHistograms());
   }
 
   _fetchTags() {
@@ -453,8 +451,24 @@ export class TfHistogramDashboard extends HTMLElement {
     });
   }
 
-  _reloadHistograms() {
-    this._cards.forEach((card) => card.redraw());
+  // 重新拉取数据，在卡片上更新数据
+  _reloadHistograms(cards = this.getActiveCards()) {
+    const loadCardData = (card) => {
+      if (card.__dataLoadPromise) return card.__dataLoadPromise;
+      const load = this.dataProvider(card._run, card._tag).then((data) => {
+        card.setSeriesData(card._run, this.toVz(data));
+        this.dispatchEvent(
+          new CustomEvent('card-data-updated', {detail: {card}})
+        );
+        return data;
+      });
+      const pending = load.finally(() => {
+        if (card.__dataLoadPromise === pending) card.__dataLoadPromise = null;
+      });
+      card.__dataLoadPromise = pending;
+      return pending;
+    };
+    return Promise.all(cards.map(loadCardData));
   }
 
   _setHistogramMode(mode) {
@@ -478,6 +492,10 @@ export class TfHistogramDashboard extends HTMLElement {
 
   _allRuns() {
     return this._runToTag ? Object.keys(this._runToTag) : [];
+  }
+
+  getActiveCards() {
+    return [...this._cards].filter((card) => card.isConnected);
   }
 
   _renderRunsSelector() {
@@ -567,6 +585,7 @@ export class TfHistogramDashboard extends HTMLElement {
         this._categoryViews.delete(name);
       }
     });
+    this.dispatchEvent(new CustomEvent('active-cards-changed'));
   }
 
   _createCard(item) {
@@ -584,9 +603,7 @@ export class TfHistogramDashboard extends HTMLElement {
     card.setTimeProperty(this._timeProperty);
     card.setHistogramMode(this._histogramMode);
     this._cards.add(card);
-    this.dataProvider(item.run, item.tag).then((data) => {
-      card.setSeriesData(item.run, this.toVz(data));
-    });
+    this._reloadHistograms([card]);
     return card;
   }
 

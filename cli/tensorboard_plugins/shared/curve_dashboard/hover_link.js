@@ -1,6 +1,6 @@
 // 跨卡 hover 联动：悬停一张卡的某个 step 后，同一折叠分组内的其他卡在
 // 相同 x 值、相同 step 处显示各自的悬停标记与 tooltip，便于对比数值。
-import {VzHistogramTimeseries} from './histogram/renderer/vz_histogram_timeseries.js';
+import {VzHistogramTimeseries} from '../histogram/renderer/vz_histogram_timeseries.js';
 
 export function enableHoverLink(dashboard) {
   // 不能包装 connectedCallback：custom element 生命周期回调在 define() 时

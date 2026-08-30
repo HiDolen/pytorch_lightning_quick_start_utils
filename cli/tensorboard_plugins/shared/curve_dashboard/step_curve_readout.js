@@ -1,8 +1,8 @@
 // offset 模式下的单卡变化曲线面板：悬停卡片时，展示悬停 x 位置的数值
 // 随 step 变化的曲线（y 轴域与源卡片数值轴一致），停靠在左侧控制面板区域。
 // 单 step 模式下由聚合读数面板（hover_readout）接管，此处不显示。
-import d3 from './histogram/vendor/d3-esm.js';
-import {pickTextColor} from './histogram/tf_card_heading.js';
+import d3 from '../histogram/vendor/d3-esm.js';
+import {pickTextColor} from '../histogram/tf_card_heading.js';
 import {isSingleStepMode} from './step_range_slider.js';
 
 const PANEL_STYLE = `
@@ -208,19 +208,13 @@ export function enableStepCurveReadout(dashboard, formatX) {
   }
 
   // 卡片随数据渐进创建，数据到达后再绑定 hover 监听
-  const origProvider = dashboard.dataProvider;
-  dashboard.dataProvider = (run, tag) =>
-    origProvider(run, tag).then((d) => {
-      setTimeout(attach, 0);
-      return d;
-    });
-
-  function attach() {
-    dashboard._cards.forEach((card) => {
-      const chart = card.$.chart;
-      if (!chart || chart.__scrBound) return;
-      chart.__scrBound = true;
-      chart.addEventListener('histogram-hover', (e) => onHover(card, e.detail));
-    });
+  function attach(card) {
+    const chart = card && card.$.chart;
+    if (!chart || chart.__scrBound) return;
+    chart.__scrBound = true;
+    chart.addEventListener('histogram-hover', (e) => onHover(card, e.detail));
   }
+
+  dashboard.addEventListener('card-data-updated', (e) => attach(e.detail.card));
+  dashboard.getActiveCards().forEach(attach);
 }

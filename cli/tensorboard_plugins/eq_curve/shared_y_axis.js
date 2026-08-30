@@ -21,12 +21,12 @@ export function enableSharedYAxis(dashboard) {
   }
   function applyToTag(tag) {
     var domain = enabled ? domainOf(tag) : null;
-    dashboard._cards.forEach(function (card) {
+    dashboard.getActiveCards().forEach(function (card) {
       if (card._tag === tag) card.$.chart.setSharedYDomain(domain);
     });
   }
   function refreshAllCards() {
-    dashboard._cards.forEach(function (card) {
+    dashboard.getActiveCards().forEach(function (card) {
       card.$.chart.setSharedYDomain(enabled ? domainOf(card._tag) : null);
     });
   }
@@ -64,23 +64,21 @@ export function enableSharedYAxis(dashboard) {
   });
   paint();
 
-  // Wrap dashboard.dataProvider: 无论开关状态都聚合,切回 shared 即时生效;
+  // 无论开关状态都聚合，切回 shared 时即时生效；
   // 注入与否由 applyToTag 按当前开关决定。
-  var origProvider = dashboard.dataProvider;
-  dashboard.dataProvider = function (run, tag) {
-    return origProvider(run, tag).then(function (data) {
-      var vz = dashboard.toVz(data);
-      var yMax = -Infinity;
-      for (var i = 0; i < vz.length; i++) {
-        var bins = vz[i].bins;
-        for (var j = 0; j < bins.length; j++) {
-          if (bins[j].y > yMax) yMax = bins[j].y;
-        }
+  dashboard.addEventListener('card-data-updated', function (e) {
+    var card = e.detail.card;
+    var vz = card.$.chart._data || [];
+    var yMax = -Infinity;
+    for (var i = 0; i < vz.length; i++) {
+      var bins = vz[i].bins;
+      for (var j = 0; j < bins.length; j++) {
+        if (bins[j].y > yMax) yMax = bins[j].y;
       }
-      var prev = tagYMax.has(tag) ? tagYMax.get(tag) : -Infinity;
-      if (yMax > prev) tagYMax.set(tag, yMax);
-      applyToTag(tag);
-      return data;
-    });
-  };
+    }
+    var prev = tagYMax.has(card._tag) ? tagYMax.get(card._tag) : -Infinity;
+    if (yMax > prev) tagYMax.set(card._tag, yMax);
+    applyToTag(card._tag);
+  });
+  dashboard.addEventListener('active-cards-changed', refreshAllCards);
 }

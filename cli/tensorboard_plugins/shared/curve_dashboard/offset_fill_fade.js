@@ -1,5 +1,5 @@
 // 在 offset 模式下曲线下方填充淡出
-import {VzHistogramTimeseries} from './histogram/renderer/vz_histogram_timeseries.js';
+import {VzHistogramTimeseries} from '../histogram/renderer/vz_histogram_timeseries.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const SOLID_PX = 1
