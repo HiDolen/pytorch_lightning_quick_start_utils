@@ -42,12 +42,21 @@ const PANEL_STYLE = `
     font-variant-numeric: tabular-nums; color: #212121; white-space: nowrap;
   }
   .eq-hro-panel .delta {
-    position: relative; min-width: 72px; text-align: left; color: #757575;
+    display: flex; align-items: center; gap: 5px;
+    min-width: 124px; color: #757575;
     font-variant-numeric: tabular-nums; white-space: nowrap;
   }
-  /* 差值幅度条：长度 ∝ |差值|/最大|差值|，颜色按正负 */
+  /* 差值方向由条形相对中线的朝向来表示（负向左、正向右） */
+  .eq-hro-panel .delta-chart {
+    position: relative; width: 64px; height: 14px; flex: none;
+  }
+  .eq-hro-panel .delta-base {
+    position: absolute; left: 50%; top: -2px; bottom: -2px;
+    width: 1px; background: #bdbdbd;
+  }
   .eq-hro-panel .delta-bar {
-    position: absolute; left: 0; top: 3px; bottom: 3px; border-radius: 2px;
+    position: absolute; top: 2px; bottom: 2px;
+    border-radius: 1px; background: #757575;
   }
   .eq-hro-panel .delta-text { position: relative; }
 `;
@@ -133,18 +142,24 @@ export function enableHoverReadout(dashboard, formatX) {
     const delta = document.createElement('span');
     delta.className = 'delta';
     if (deltaText) {
-      const rgb = diff < 0 ? '198,40,40' : '46,125,50';
-      const bar = document.createElement('span');
-      bar.className = 'delta-bar';
-      bar.style.width = Math.round(ratio * 64) + 'px';
-      bar.style.background = 'rgba(' + rgb + ',0.22)';
+      const chartEl = document.createElement('span');
+      chartEl.className = 'delta-chart';
+      const base = document.createElement('span');
+      base.className = 'delta-base';
+      chartEl.appendChild(base);
+      if (diff !== 0) {
+        const bar = document.createElement('span');
+        bar.className = 'delta-bar';
+        // 半宽 32px 留 1px 给中线，条长 ∝ |差值|/最大|差值|
+        bar.style.width = Math.max(1, Math.round(ratio * 31)) + 'px';
+        if (diff < 0) bar.style.right = '50%';
+        else bar.style.left = '50%';
+        chartEl.appendChild(bar);
+      }
       const text = document.createElement('span');
       text.className = 'delta-text';
       text.textContent = deltaText;
-      // 幅度越大的差值，颜色越鲜明，文字也越粗
-      text.style.color = 'rgba(' + rgb + ',' + (0.55 + 0.45 * ratio).toFixed(2) + ')';
-      if (ratio > 0.66) text.style.fontWeight = '500';
-      delta.appendChild(bar);
+      delta.appendChild(chartEl);
       delta.appendChild(text);
     }
     row.appendChild(spacer);
