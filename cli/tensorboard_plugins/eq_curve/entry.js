@@ -6,6 +6,7 @@ import {eqCurvesToVz, logToHz} from './frequency_adapter.js';
 import {enableSharedYAxis} from './shared_y_axis.js';
 import {installStepRangeSlider} from '../shared/step_range_slider.js';
 import {enableHoverReadout} from '../shared/hover_readout.js';
+import {enableStepCurveReadout} from '../shared/step_curve_readout.js';
 import {enableOffsetFillFade} from '../shared/offset_fill_fade.js';
 import {enableHoverLink} from '../shared/hover_link.js';
 
@@ -46,11 +47,13 @@ export function render() {
   enableSharedYAxis(dashboard);
   enableHoverLink(dashboard);
   installStepRangeSlider(dashboard);
-  // 读数面板头部显示 bin 的真实频率
-  enableHoverReadout(dashboard, (logHz) => {
+  // 面板中显示 bin 的真实频率
+  const formatX = (logHz) => {
     const hz = logToHz(logHz);
     return (hz >= 1000 ? Math.round(hz) : Math.round(hz * 10) / 10) + ' Hz';
-  });
+  };
+  enableHoverReadout(dashboard, formatX);
+  enableStepCurveReadout(dashboard, formatX);
   listenForReload(() => dashboard.reload());
     // 重新拉取数据，在卡片上更新数据
   dashboard._reloadHistograms = () => {

@@ -6,6 +6,7 @@ import '../shared/histogram/tf_histogram_dashboard.js';
 import {curvesToVz} from '../shared/histogram/data/exact_curve_adapter.js';
 import {installStepRangeSlider} from '../shared/step_range_slider.js';
 import {enableHoverReadout} from '../shared/hover_readout.js';
+import {enableStepCurveReadout} from '../shared/step_curve_readout.js';
 import {enableOffsetFillFade} from '../shared/offset_fill_fade.js';
 import {enableHoverLink} from '../shared/hover_link.js';
 
@@ -46,6 +47,7 @@ export function render() {
   enableHoverLink(dashboard);
   installStepRangeSlider(dashboard);
   enableHoverReadout(dashboard);
+  enableStepCurveReadout(dashboard);
   listenForReload(() => dashboard.reload());
   // 重新拉取数据，在卡片上更新数据
   dashboard._reloadHistograms = () => {
