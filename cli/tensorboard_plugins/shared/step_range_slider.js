@@ -2,7 +2,10 @@
 import {VzHistogramTimeseries} from './histogram/renderer/vz_histogram_timeseries.js';
 
 const SLIDER_TEMPLATE = `
-  <h3>Step Range</h3>
+  <div class="eq-srs-header">
+    <h3>Step Range</h3>
+    <button class="eq-srs-single" title="Single step mode; or double-click a curve to pick a step">1</button>
+  </div>
   <div class="content-wrapper">
     <div class="eq-srs-track-wrap" title="Drag endpoints to select the step range; double-click to reset">
       <div class="eq-srs-track"></div>
@@ -26,14 +29,14 @@ const SLIDER_STYLE = `
   .eq-srs-range {
     position: absolute; top: 50%; height: 2px; transform: translateY(-50%);
     background: #2196f3; border-radius: 1px;
-    transition: left .15s ease-out, width .15s ease-out;
+    transition: left .15s ease-out, width .15s ease-out, opacity .15s ease-out;
   }
   .eq-srs-thumb {
     position: absolute; top: 50%; width: 12px; height: 12px;
     transform: translate(-50%, -50%); border-radius: 50%;
     background: #2196f3; border: 2px solid #fff;
     box-shadow: 0 1px 3px rgba(0,0,0,.35); cursor: grab; z-index: 2;
-    transition: left .12s ease-out, transform .1s;
+    transition: left .12s ease-out, transform .1s, opacity .15s ease-out;
   }
   .eq-srs-thumb:hover, .eq-srs-thumb.active {
     transform: translate(-50%, -50%) scale(1.25);
@@ -57,6 +60,24 @@ const SLIDER_STYLE = `
   /* 首尾标签边缘对齐，避免溢出被 sidebar 的 overflow:hidden 裁剪 */
   .eq-srs-tick.first .eq-srs-tick-label { transform: none; }
   .eq-srs-tick.last .eq-srs-tick-label { transform: translateX(-100%); }
+  .eq-srs-header {
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  /* h3 本身 pointer-events:none，按钮需自行恢复 */
+  .eq-srs-single {
+    border: 1px solid var(--tb-ui-border); border-radius: 3px; background: none;
+    color: var(--tb-ui-dark-accent); font-size: 11px; line-height: 1;
+    padding: 3px 7px; cursor: pointer; pointer-events: auto;
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  .eq-srs-single.on {
+    background: #2196f3; border-color: #2196f3; color: #fff;
+  }
+  /* 进入单 step 模式：hi 端滑向单滑块位置并淡出（render 同步位置） */
+  .eq-srs-track-wrap.single .eq-srs-thumb[data-which="hi"] {
+    opacity: 0; pointer-events: none;
+  }
+  .eq-srs-track-wrap.single .eq-srs-range { opacity: 0; }
 `;
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -87,17 +108,22 @@ class StepRangeSlider {
     this.steps = [];
     this.lo = 0;
     this.hi = 0;
+    this.single = false;
+    this.singleIdx = 0;
+    this.singleVal = null;
     this.drag = null;
     row.innerHTML = SLIDER_TEMPLATE;
     this.wrap = row.querySelector('.eq-srs-track-wrap');
     this.rangeEl = row.querySelector('.eq-srs-range');
     this.ticksEl = row.querySelector('.eq-srs-ticks');
+    this.singleBtn = row.querySelector('.eq-srs-single');
     this.thumbs = {
       lo: row.querySelector('.eq-srs-thumb[data-which="lo"]'),
       hi: row.querySelector('.eq-srs-thumb[data-which="hi"]'),
     };
     for (const which of ['lo', 'hi']) this._attach(this.thumbs[which], which);
     this.wrap.addEventListener('dblclick', () => this.reset());
+    this.singleBtn.addEventListener('click', () => this.setSingle(!this.single));
   }
 
   // 数据重载后更新可选域，尽量保持已选值
@@ -106,6 +132,10 @@ class StepRangeSlider {
     this.lo = Math.max(0, steps.indexOf(loVal));
     this.hi = steps.indexOf(hiVal);
     if (this.hi < 0) this.hi = steps.length - 1;
+    if (this.single) {
+      this.singleIdx = clamp(this._nearestIdx(this.singleVal), 0, steps.length - 1);
+      this.singleVal = steps[this.singleIdx];
+    }
     this._renderTicks();
     this.render();
   }
@@ -172,15 +202,23 @@ class StepRangeSlider {
 
   // 任意值 → x：换算到最近 step 索引再映射，保证与锚点吸附位置一致
   valToX(v) {
+    return this.idxToX(this._nearestIdx(v));
+  }
+
+  _nearestIdx(v) {
     const n = this.steps.length;
-    if (n <= 1) return this.wrap.clientWidth / 2;
-    let lo = 0, hi = n - 1; // 二分：第一个 >= v 的索引
+    if (n === 0) return 0;
+    let lo = 0,
+      hi = n - 1; // 二分：第一个 >= v 的索引
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
       if (this.steps[mid] < v) lo = mid + 1;
       else hi = mid;
     }
-    return this.idxToX(lo);
+    if (lo > 0 && Math.abs(this.steps[lo - 1] - v) < Math.abs(this.steps[lo] - v)) {
+      return lo - 1;
+    }
+    return lo;
   }
 
   clientXToIdx(x) {
@@ -207,9 +245,12 @@ class StepRangeSlider {
   _attach(thumb, which) {
     thumb.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
-      // 两端重叠时（如都拖到最右）命中的必是上层 thumb，无法区分是哪端，
-      // 先挂起，由首次拖动方向决定要移动的那一端
-      if (this.lo === this.hi) {
+      if (this.single) {
+        // 单 step 模式只有一个 thumb（复用 lo 槽位）
+        this._setDrag('lo');
+      } else if (this.lo === this.hi) {
+        // 两端重叠时（如都拖到最右）命中的必是上层 thumb，无法区分是哪端，
+        // 先挂起，由首次拖动方向决定要移动的那一端
         this.drag = 'pending';
         this._startX = e.clientX;
       } else {
@@ -224,6 +265,17 @@ class StepRangeSlider {
       // 锚点"粘"在鼠标上；发现左键已松开就立即结束拖动
       if ((e.buttons & 1) === 0) {
         if (this.drag) this._endDrag();
+        return;
+      }
+      if (this.single) {
+        if (this.drag !== 'lo') return;
+        const i = this.clientXToIdx(e.clientX);
+        if (i !== this.singleIdx) {
+          this.singleIdx = i;
+          this.singleVal = this.steps[i];
+          this.render();
+          this.onChange(this.singleVal, this.singleVal);
+        }
         return;
       }
       if (this.drag === 'pending') {
@@ -255,19 +307,46 @@ class StepRangeSlider {
 
   reset() {
     if (this.steps.length === 0) return;
+    this.single = false;
     this.lo = 0;
     this.hi = this.steps.length - 1;
     this.render();
     this.onChange(this.steps[this.lo], this.steps[this.hi]);
   }
 
+  // 单 step 模式：lo/hi 端点保留，退出后恢复原区间
+  setSingle(on, stepVal) {
+    this.single = on;
+    if (on) {
+      const idx =
+        stepVal != null ? this._nearestIdx(stepVal) : this.hi;
+      this.singleIdx = clamp(idx, 0, this.steps.length - 1);
+      this.singleVal = this.steps[this.singleIdx];
+      this.render();
+      this.onChange(this.singleVal, this.singleVal);
+    } else {
+      this.render();
+      this.onChange(this.steps[this.lo], this.steps[this.hi]);
+    }
+  }
+
+  // 双击图表选取 step；同一步上再次双击则退出
+  pickStep(stepVal) {
+    if (this.single && this.singleVal === stepVal) this.setSingle(false);
+    else this.setSingle(true, stepVal);
+  }
+
   render() {
-    const xLo = this.idxToX(this.lo);
+    this.wrap.classList.toggle('single', this.single);
+    this.singleBtn.classList.toggle('on', this.single);
+    // 单 step 模式呈现"收拢/展开"动画
+    const xLo = this.idxToX(this.single ? this.singleIdx : this.lo);
     const xHi = this.idxToX(this.hi);
     this.thumbs.lo.style.left = xLo + 'px';
-    this.thumbs.hi.style.left = xHi + 'px';
+    this.thumbs.hi.style.left = (this.single ? xLo : xHi) + 'px';
     this.rangeEl.style.left = xLo + 'px';
-    this.rangeEl.style.width = Math.max(0, xHi - xLo) + 'px';
+    this.rangeEl.style.width =
+      (this.single ? 0 : Math.max(0, xHi - xLo)) + 'px';
   }
 }
 
@@ -279,20 +358,25 @@ let _lo = null;
 let _hi = null;
 
 // 单卡过滤：区间外的 g.histogram 整组淡出（opacity 为组级，不干扰内部
-// 样式）；同时设置渲染器 _stepFilter，使 hover 忽略被过滤的切片
+// 样式）；同时设置渲染器 _stepFilter，使 hover 忽略被过滤的切片。
+// 单 step 模式退化为 lo === hi 的区间
 function applyFilterToChart(chart) {
   if (!chart) return;
-  if (_lo === null || _hi === null) {
+  let lo = _lo,
+    hi = _hi;
+  // refreshSteps 重载域时只同步区间端点，单 step 值以滑条为准
+  if (_slider && _slider.single) lo = hi = _slider.singleVal;
+  if (lo === null || hi === null) {
     chart._stepFilter = null;
     return;
   }
-  chart._stepFilter = (step) => step >= _lo && step <= _hi;
+  chart._stepFilter = (step) => step >= lo && step <= hi;
   const root = chart.shadowRoot;
   if (!root) return;
   root.querySelectorAll('g.histogram').forEach((g) => {
     const d = g.__data__;
     if (!d) return;
-    g.style.opacity = d.step >= _lo && d.step <= _hi ? '' : '0.05';
+    g.style.opacity = d.step >= lo && d.step <= hi ? '' : '0.05';
   });
 }
 
@@ -301,9 +385,27 @@ function applyFilter() {
   _dashboard._cards.forEach((card) => applyFilterToChart(card.$.chart));
 }
 
+// 双击图表选取单个 step：双击位置对应的 step 取该图最近一次 hover 事件
+// 的 step（渲染器已按 _stepFilter 过滤，双击前必有 mousemove）
+function attachStepPickers() {
+  _dashboard._cards.forEach((card) => {
+    const chart = card.$.chart;
+    if (!chart || chart.__srsPickBound) return;
+    chart.__srsPickBound = true;
+    let lastStep = null;
+    chart.addEventListener('histogram-hover', (e) => {
+      lastStep = e.detail ? e.detail.step : null;
+    });
+    chart.addEventListener('dblclick', () => {
+      if (lastStep != null) _slider.pickStep(lastStep);
+    });
+  });
+}
+
 // 重算全局 step 并集；域变化时保持用户主动选择的端点值（旧值若在旧域
 // 边界上则视为"未主动选择"，跟随新边界，保证默认始终是全范围）
 function refreshSteps() {
+  attachStepPickers();
   const set = new Set();
   _dashboard._cards.forEach((card) => {
     const data = (card.$.chart && card.$.chart._data) || [];
