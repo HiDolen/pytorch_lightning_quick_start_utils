@@ -74,6 +74,27 @@ export function enableStepCurveReadout(dashboard, formatX) {
       .domain(yDomain)
       .range([SVG_H - MARGIN.bottom, MARGIN.top]);
     const g = d3.select(svg);
+    // y 轴标尺刻度值：整值刻度；域边界若离刻度过近则并入，避免标签重叠
+    const tickVals = yScale.ticks(4);
+    for (const bound of [yDomain[0], yDomain[1]]) {
+      const near = tickVals.some(
+        (t) => Math.abs(yScale(t) - yScale(bound)) < 9
+      );
+      if (!near) tickVals.push(bound);
+    }
+    tickVals.sort((a, b) => a - b);
+    // 先绘制网格线与 0 基准线，垫在曲线之下
+    for (const t of tickVals) {
+      const y = yScale(t);
+      if (y > MARGIN.top && y < SVG_H - MARGIN.bottom) {
+        g.append('line')
+          .attr('x1', MARGIN.left)
+          .attr('x2', svgW - MARGIN.right)
+          .attr('y1', y)
+          .attr('y2', y)
+          .attr('stroke', '#f0f0f0');
+      }
+    }
     // 数值 0 基准线
     if (yDomain[0] < 0 && yDomain[1] > 0) {
       g.append('line')
@@ -109,21 +130,23 @@ export function enableStepCurveReadout(dashboard, formatX) {
         .attr('stroke', '#fff')
         .attr('stroke-width', 1.5);
     }
-    // y 轴域标签（与源卡片数值轴一致的上下界）
-    g.append('text')
-      .attr('x', MARGIN.left - 4)
-      .attr('y', MARGIN.top + 4)
-      .attr('text-anchor', 'end')
-      .attr('font-size', 10)
-      .attr('fill', '#9e9e9e')
-      .text(fmt(yDomain[1]));
-    g.append('text')
-      .attr('x', MARGIN.left - 4)
-      .attr('y', SVG_H - MARGIN.bottom + 4)
-      .attr('text-anchor', 'end')
-      .attr('font-size', 10)
-      .attr('fill', '#9e9e9e')
-      .text(fmt(yDomain[0]));
+    // y 轴标尺
+    for (const t of tickVals) {
+      const y = yScale(t);
+      g.append('line')
+        .attr('x1', MARGIN.left - 4)
+        .attr('x2', MARGIN.left)
+        .attr('y1', y)
+        .attr('y2', y)
+        .attr('stroke', '#bdbdbd');
+      g.append('text')
+        .attr('x', MARGIN.left - 6)
+        .attr('y', y + 3.5)
+        .attr('text-anchor', 'end')
+        .attr('font-size', 10)
+        .attr('fill', '#9e9e9e')
+        .text(fmt(t));
+    }
     // step 轴两端标签
     g.append('text')
       .attr('x', MARGIN.left)
