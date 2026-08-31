@@ -3,7 +3,7 @@
 // 单 step 模式下由聚合读数面板（hover_readout）接管，此处不显示。
 import d3 from '../histogram/vendor/d3-esm.js';
 import {pickTextColor} from '../histogram/tf_card_heading.js';
-import {isSingleStepMode} from './step_range_slider.js';
+import {isSingleStepMode, getStepRange} from './step_range_slider.js';
 
 const PANEL_STYLE = `
   .eq-scr-panel {
@@ -150,8 +150,11 @@ export function enableStepCurveReadout(dashboard, formatX) {
     const data = chart._data || [];
     const tp = chart.timeProperty;
     const bisect = d3.bisector((b) => b[chart.x] + b[chart.dx]).left;
+    // step 范围跟随滑条选择，区间外的不进入曲线
+    const range = getStepRange();
     // 与渲染器 hover 相同的 bin 定位：每个 step 取悬停 x 所在 bin 的数值
     const pts = data
+      .filter((d) => !range || (d[tp] >= range.lo && d[tp] <= range.hi))
       .map((d) => {
         const bins = d[chart.bins];
         const i = Math.min(bins.length - 1, bisect(bins, detail.value));

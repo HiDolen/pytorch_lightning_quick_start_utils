@@ -440,6 +440,13 @@ export function isSingleStepMode() {
   return !!(_slider && _slider.single);
 }
 
+// 当前生效的 step 区间（单 step 模式则为 lo === hi）
+export function getStepRange() {
+  if (!_slider || _lo === null || _hi === null) return null;
+  if (_slider.single) return {lo: _slider.singleVal, hi: _slider.singleVal};
+  return {lo: _lo, hi: _hi};
+}
+
 export function installStepRangeSlider(dashboard) {
   if (_dashboard) return;
   _dashboard = dashboard;
