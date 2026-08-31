@@ -101,6 +101,16 @@ VzHistogramTimeseries.prototype.redraw = function () {
   return result;
 };
 
+// 让 shared 渲染器的 hoverXIndex 也按 log 频率轴显示 Hz 标签
+const origSetLinkedHover = VzHistogramTimeseries.prototype.setLinkedHover;
+VzHistogramTimeseries.prototype.setLinkedHover = function (value, step) {
+  const result = origSetLinkedHover.call(this, value, step);
+  const label = this.shadowRoot?.querySelector('.x-axis-hover text');
+  const logHz = label ? parseFloat(label.textContent) : NaN;
+  if (label && !isNaN(logHz)) label.textContent = formatHz(logToHz(logHz));
+  return result;
+};
+
 // The renderer writes x-axis hover labels with its own stock numeric format,
 // which would show the raw log10 value ("1.30" instead of "20"). Its mousemove
 // listener is bound earlier, so this document-level listener runs after it and
