@@ -43,7 +43,7 @@ const PANEL_STYLE = `
   }
   .eq-hro-panel .delta {
     display: flex; align-items: center; gap: 5px;
-    min-width: 124px; color: #757575;
+    flex: 0 0 150px; width: 150px; min-width: 150px; color: #757575;
     font-variant-numeric: tabular-nums; white-space: nowrap;
   }
   /* 差值方向由条形相对中线的朝向来表示（负向左、正向右） */
@@ -52,13 +52,20 @@ const PANEL_STYLE = `
   }
   .eq-hro-panel .delta-base {
     position: absolute; left: 50%; top: -2px; bottom: -2px;
-    width: 1px; background: #bdbdbd;
+    width: 1px; background: #bdbdbd; z-index: 1;
   }
   .eq-hro-panel .delta-bar {
     position: absolute; top: 2px; bottom: 2px;
-    border-radius: 1px; background: #757575;
+    border-radius: 1px; background: #757575; z-index: 2;
   }
-  .eq-hro-panel .delta-text { position: relative; }
+  .eq-hro-panel .delta-chart::before,
+  .eq-hro-panel .delta-chart::after {
+    content: ''; position: absolute; top: -1px; bottom: -1px; width: 1px;
+    background: #dedede; opacity: .65; z-index: 0; pointer-events: none;
+  }
+  .eq-hro-panel .delta-chart::before { left: 35%; }
+  .eq-hro-panel .delta-chart::after { left: 65%; }
+  .eq-hro-panel .delta-text { flex: 0 0 80px; position: relative; }
 `;
 
 const fmt = d3.format('.4g');
@@ -202,17 +209,45 @@ export function enableHoverReadout(dashboard, formatX) {
         !isCur && value != null && curVal != null ? value - curVal : null;
       return {card, value, isCur, diff};
     });
-    const maxAbs = Math.max(
-      0,
-      ...rowsData.map((r) => (r.diff == null ? 0 : Math.abs(r.diff)))
+    const srcStepData = srcChart._data.find(
+      (datum) => datum[srcChart.timeProperty] === detail.step
     );
+    const axisDiffs = [];
+    if (srcStepData) {
+      srcStepData[srcChart.bins].forEach((bin) => {
+        const x = bin[srcChart.x] + bin[srcChart.dx] / 2;
+        cards.forEach((card) => {
+          if (card === sourceCard) return;
+          const value = valueAt(card.$.chart, x, detail.step);
+          if (value != null && Number.isFinite(value) && Number.isFinite(bin[srcChart.y])) {
+            axisDiffs.push(Math.abs(value - bin[srcChart.y]));
+          }
+        });
+      });
+    }
+    const axisMax = Math.max(0, ...axisDiffs);
+    const positiveDiffs = axisDiffs.filter((value) => value > 0);
+    const axisMin = positiveDiffs.length ? Math.min(...positiveDiffs) : 0;
+    const middle = axisMin > 0 ? Math.sqrt(axisMin * axisMax) : axisMax / 2;
+    const ratioFor = (diff) => {
+      if (diff == null || axisMax === 0) return 0;
+      const magnitude = Math.abs(diff);
+      if (magnitude <= middle || axisMax === middle) {
+        return Math.min(0.5, 0.5 * Math.sqrt(magnitude / middle));
+      }
+      return Math.min(
+        1,
+        0.5 +
+          0.5 *
+            ((magnitude - middle) / (axisMax - middle))
+      );
+    };
     rowsData.forEach(({card, value, isCur, diff}) => {
       const tagLabel =
         (card._heading && card._heading.displayName) || card._tag || '';
       const runColor = card._colorScaleFunction(card._run);
       const delta = diff == null ? '' : (diff > 0 ? '+' : '') + fmt(diff);
-      const ratio =
-        diff == null || maxAbs === 0 ? 0 : Math.abs(diff) / maxAbs;
+      const ratio = ratioFor(diff);
       panel.appendChild(
         buildRow(
           tagLabel,

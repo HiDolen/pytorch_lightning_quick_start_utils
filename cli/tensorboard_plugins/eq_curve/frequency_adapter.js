@@ -106,7 +106,8 @@ const origSetLinkedHover = VzHistogramTimeseries.prototype.setLinkedHover;
 VzHistogramTimeseries.prototype.setLinkedHover = function (value, step) {
   const result = origSetLinkedHover.call(this, value, step);
   const label = this.shadowRoot?.querySelector('.x-axis-hover text');
-  const logHz = label ? parseFloat(label.textContent) : NaN;
+  // 读 dataset.xValue 中的原始 log 值，并转为 Hz 显示
+  const logHz = parseFloat(label?.dataset.xValue);
   if (label && !isNaN(logHz)) label.textContent = formatHz(logToHz(logHz));
   return result;
 };
@@ -122,7 +123,7 @@ document.addEventListener('mousemove', function (event) {
     if (node && node.tagName === 'VZ-HISTOGRAM-TIMESERIES') {
       var label = node.shadowRoot.querySelector('.x-axis-hover text');
       if (label) {
-        var logHz = parseFloat(label.textContent);
+        var logHz = parseFloat(label.dataset.xValue);
         if (!isNaN(logHz)) {
           label.textContent = formatHz(logToHz(logHz));
         }

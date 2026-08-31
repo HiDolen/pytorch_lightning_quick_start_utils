@@ -681,25 +681,18 @@ export class VzHistogramTimeseries extends HTMLElement {
         return d === closestSliceData;
       });
       var index = hoverXIndex(lastSliceData);
+      var hoverX =
+        lastSliceData[binsProp][index][xProp] +
+        lastSliceData[binsProp][index][dxProp] / 2;
       xAxisHoverUpdate
         .attr('transform', function (d) {
-          return (
-            'translate(' +
-            xScale(
-              lastSliceData[binsProp][index][xProp] +
-                lastSliceData[binsProp][index][dxProp] / 2
-            ) +
-            ', ' +
-            height +
-            ')'
-          );
+          return 'translate(' + xScale(hoverX) + ', ' + height + ')';
         })
         .select('text')
         .text(function (d) {
-          return format(
-            lastSliceData[binsProp][index][xProp] +
-              lastSliceData[binsProp][index][dxProp] / 2
-          );
+          // 原始 x 值随文本存入 dataset，宿主（如 Hz 轴）免二次解析、幂等重写
+          this.dataset.xValue = hoverX;
+          return format(hoverX);
         });
       var fy = yAxis.tickFormat();
       yAxisHoverUpdate
