@@ -373,6 +373,7 @@ export class TfHistogramDashboard extends HTMLElement {
     this._timeProperty = 'step';
     this._selectedRuns = null;
     this._knownRuns = new Set(); // 曾出现过的 run 集合,用于识别刷新时新出现的 run
+    this._tagsRequestId = 0;
     this._runToTag = null;
     this._runToTagInfo = null;
     this._dataNotFound = false;
@@ -424,7 +425,9 @@ export class TfHistogramDashboard extends HTMLElement {
   }
 
   _fetchTags() {
+    const requestId = ++this._tagsRequestId;
     return this.tagsProvider().then((runToTagInfo) => {
+      if (requestId !== this._tagsRequestId) return;
       const runToTag = {};
       Object.keys(runToTagInfo)
         .sort(compareRunNames)
