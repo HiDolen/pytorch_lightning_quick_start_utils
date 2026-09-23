@@ -369,7 +369,7 @@ export class TfHistogramDashboard extends HTMLElement {
     this._multiCheckbox = root.getElementById('multi-checkbox');
     this._toggleAll = root.getElementById('toggle-all');
 
-    this._histogramMode = 'offset';
+    this._histogramMode = 'overlay';
     this._timeProperty = 'step';
     this._selectedRuns = null;
     this._knownRuns = new Set(); // 曾出现过的 run 集合,用于识别刷新时新出现的 run
@@ -401,19 +401,7 @@ export class TfHistogramDashboard extends HTMLElement {
       this._renderCategories();
     });
     this._toggleAll.addEventListener('click', () => this._toggleAllRuns());
-    // 记录 runs 列表内相邻两次点击的时间戳，供双击独选的严格判定
-    // 原生 dblclick 阈值约 500ms，太宽松容易误触
-    this._prevRunClickAt = 0;
-    this._lastRunClickAt = 0;
-    this._multiCheckbox.addEventListener(
-      'click',
-      (e) => {
-        this._prevRunClickAt = this._lastRunClickAt;
-        this._lastRunClickAt = e.timeStamp;
-      },
-      true
-    );
-    this._setHistogramMode('offset');
+    this._setHistogramMode('overlay');
   }
 
   connectedCallback() {
@@ -527,15 +515,6 @@ export class TfHistogramDashboard extends HTMLElement {
           selected.add(run);
         }
         this._selectedRuns = runs.filter((r) => selected.has(r));
-        this._renderRunsSelector();
-        this._renderCategories();
-      });
-      // 双击复选框进入独立勾选（只保留该 run）
-      // 双击间隔 250ms 内才触发
-      checkbox.addEventListener('dblclick', (e) => {
-        e.preventDefault();
-        if (this._lastRunClickAt - this._prevRunClickAt > 250) return;
-        this._selectedRuns = [run];
         this._renderRunsSelector();
         this._renderCategories();
       });
