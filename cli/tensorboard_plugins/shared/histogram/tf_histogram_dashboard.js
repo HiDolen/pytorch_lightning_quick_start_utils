@@ -376,6 +376,7 @@ export class TfHistogramDashboard extends HTMLElement {
     this._tagsRequestId = 0;
     this._runToTag = null;
     this._runToTagInfo = null;
+    this._runsColorScale = createRunsColorScale([]);
     this._dataNotFound = false;
     this._tagFilter = '';
     this._categoryViews = new Map(); // category name -> view element
@@ -437,6 +438,12 @@ export class TfHistogramDashboard extends HTMLElement {
         );
       }
       runs.forEach((run) => this._knownRuns.add(run));
+      this._runsColorScale = createRunsColorScale(runs);
+      this._cards.forEach((card) => {
+        if (runs.includes(card._run)) {
+          card.setColorScaleFunction(this._runsColorScale);
+        }
+      });
       this._renderRunsSelector();
       this._renderCategories();
     });
@@ -492,10 +499,9 @@ export class TfHistogramDashboard extends HTMLElement {
   _renderRunsSelector() {
     var runs = this._allRuns();
     var selected = new Set(this._selectedRuns || []);
-    var runsColorScale = createRunsColorScale(runs);
     this._multiCheckbox.replaceChildren();
     runs.forEach((run) => {
-      var color = runsColorScale(run);
+      var color = this._runsColorScale(run);
       var row = document.createElement('label');
       row.className = 'run-row' + (selected.has(run) ? ' checked' : '');
       row.style.color = color;
@@ -572,7 +578,6 @@ export class TfHistogramDashboard extends HTMLElement {
 
   _createCard(item) {
     var card = document.createElement('tf-histogram-card');
-    var runs = this._allRuns();
     card.setRun(item.run);
     card.setTag(item.tag);
     var tagInfo =
@@ -581,7 +586,7 @@ export class TfHistogramDashboard extends HTMLElement {
         this._runToTagInfo[item.run][item.tag]) ||
       {};
     card.setTagMetadata(tagInfo);
-    card.setColorScaleFunction(createRunsColorScale(runs));
+    card.setColorScaleFunction(this._runsColorScale);
     card.setTimeProperty(this._timeProperty);
     card.setHistogramMode(this._histogramMode);
     this._cards.add(card);
