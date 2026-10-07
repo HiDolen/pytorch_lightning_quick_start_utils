@@ -57,7 +57,9 @@ class ScalarComparePluginTest(unittest.TestCase):
 
     def test_cli_registers_comparison_in_place_of_scalars(self):
         with (
-            mock.patch("cli.tensorboard.default.get_plugins", return_value=[scalars_plugin.ScalarsPlugin]),
+            mock.patch(
+                "cli.tensorboard.default.get_plugins", return_value=[scalars_plugin.ScalarsPlugin]
+            ),
             mock.patch("cli.tensorboard.program.TensorBoard") as constructor,
         ):
             constructor.return_value.main.return_value = 0

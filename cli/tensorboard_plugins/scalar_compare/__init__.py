@@ -26,10 +26,7 @@ class ScalarComparePlugin(scalars_plugin.ScalarsPlugin):
         )
         static_app = SharedDataMiddleware(
             NotFound(),
-            {
-                f"/data/plugin/{self.plugin_name}/ui/{asset}": str(root / asset)
-                for asset in assets
-            },
+            {f"/data/plugin/{self.plugin_name}/ui/{asset}": str(root / asset) for asset in assets},
             cache_timeout=0,
         )
 
