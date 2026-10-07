@@ -115,6 +115,7 @@ class BaseModule(L.LightningModule):
             def load_state_dict(self, state_list):
                 for opt, sd in zip(self.optimizers, state_list):
                     opt.load_state_dict(sd)
+                self.param_groups = [g for opt in self.optimizers for g in opt.param_groups]
 
         remaining_params = dict(self.model.named_parameters())
         remaining_params = {n: p for n, p in remaining_params.items() if p.requires_grad}
